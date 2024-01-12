@@ -27,9 +27,7 @@ const Experience = () => {
           <AccordionItem value="item-1" className="text-md">
             <AccordionTrigger className="flex w-full">
               <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
-                <div className="text-left font-medium">
-                  Full Stack Developer , Smart Contract Security Engineer
-                </div>
+                <div className="text-left font-medium">Blockchain Security Engineer</div>
                 <span className="md:text-small mt-0.5 hidden pr-3 text-sm text-gray-11 md:mt-1 md:block">
                   July 2022 - Present
                 </span>
@@ -41,27 +39,57 @@ const Experience = () => {
               </div>
             </AccordionTrigger>
             <AccordionContent className="p-3">
-              <p className="text-md font-semibold">
+              {/* <p className="text-md font-semibold">
                 Smart Contract Auditor - Code4Arena , Shelock DeFi
-              </p>
+              </p> */}
               <ul className="list-disc px-4">
                 <li>
-                  Audited DeFi protocols using Foundry and Hardhat to search and fix vulnerabilities
-                  within the system
+                  Performed security reviews in order to find vulnerabilities in protocols
+                  participating in code4arena, sherlockdefi, and codehawks
                 </li>
                 <li>
-                  Refactored code by writing and executing test cases to improve gas optimizations
+                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
+                  tests and conduct manual code reviews on smart contracts
                 </li>
               </ul>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="item-2">
+          <AccordionItem value="item-2" className="text-md">
+            <AccordionTrigger className="flex w-full">
+              <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
+                <div className="text-left font-medium">Full Stack Developer - web3</div>
+                <span className="md:text-small mt-0.5 hidden pr-3 text-sm text-gray-11 md:mt-1 md:block">
+                  July 2022 - Present
+                </span>
+              </div>
+              <div className="space-x-2 md:hidden">
+                <span className="md:text-small mt-0.5 text-sm text-gray-11 md:mt-1">
+                  July 2022 - Present
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-3">
+              {/* <p className="text-md font-semibold">
+                Smart Contract Auditor - Code4Arena , Shelock DeFi
+              </p> */}
+              <ul className="list-disc px-4">
+                <li>
+                  Developed Decentralized applications written in solidity using foundry and hardhat
+                </li>
+                {/* <li>
+                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
+                  tests and conduct manual code reviews on smart contracts
+                </li> */}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-3">
             <AccordionTrigger className="flex w-full">
               <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
                 <div className="flex items-baseline">
-                  <div className="pr-4 text-left font-medium">Deloitte</div>
+                  <div className="pr-4 text-left font-medium">Full Stack Developer</div>
                   <span className="md:text-small mt-0.5 text-left text-sm text-gray-11 md:mt-1">
-                    Solution Specialist - Full Stack Developer
+                    Deloitte
                   </span>
                 </div>
 
@@ -95,15 +123,13 @@ const Experience = () => {
               </ul>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="item-3">
+          <AccordionItem value="item-4">
             <AccordionTrigger className="flex w-full">
               <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
                 <div className="flex items-baseline">
-                  <div className="pr-4 text-left font-medium">
-                    Propulsion Technologies Internation
-                  </div>
+                  <div className="pr-4 text-left font-medium">Digital Technology Analyst</div>
                   <span className="md:text-small mt-0.5 text-left text-sm text-gray-11 md:mt-1">
-                    Digital Technology Analyst
+                    Propulsion Technologies Internation
                   </span>
                 </div>
                 <span className="md:text-small mt-0.5 hidden pr-3 text-sm text-gray-11 md:mt-1 md:block">
