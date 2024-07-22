@@ -15,7 +15,8 @@ const Skills = () => {
       <div className="px-4 py-4 text-sm text-gray-11">
         <ul className="list-disc overflow-auto px-4">
           <li>
-            Coding Languages : Solidity, JavaScript, Typescript (Next.js, Vue.js, React.js) , Java
+            Coding Languages : Solidity, JavaScript, Typescript (Next.js, Vue.js, React.js,
+            React-Native Expo) , Java
           </li>
           <li>
             Tools: Foundry, Metamask, Hardhat, Moralis, IPFS, Fleek, Truffle, Tailwind CSS,
