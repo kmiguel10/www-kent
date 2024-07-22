@@ -24,6 +24,98 @@ const Experience = () => {
           collapsible
           className="grid w-full grid-flow-row auto-rows-max flex-col overflow-hidden rounded-none border border-gray-6 bg-gray-2"
         >
+          <AccordionItem value="item-2" className="text-md">
+            <AccordionTrigger className="flex w-full">
+              <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
+                <div className="text-left font-medium">Full Stack Developer - Projects</div>
+                <span className="md:text-small mt-0.5 hidden pr-3 text-sm text-gray-11 md:mt-1 md:block">
+                  July 2022 - Present
+                </span>
+              </div>
+              <div className="space-x-2 md:hidden">
+                <span className="md:text-small mt-0.5 text-sm text-gray-11 md:mt-1">
+                  July 2022 - Present
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-3">
+              {/* <p className="text-md font-semibold">
+                Smart Contract Auditor - Code4Arena , Shelock DeFi
+              </p> */}
+              <div className="py-4">
+                <h1 className="py-2">Owemee - Expense Splitting App</h1>
+
+                <ul className="list-disc px-4">
+                  <li>
+                    Developed a cross-platform expense-splitting app using React Native Expo with
+                    Tamagui for UI and Supabase for backend, enabling real-time updates and seamless
+                    user experience
+                  </li>
+                  <li>
+                    Implemented secure user authentication, efficient transaction tracking, and
+                    real-time synchronization; leveraged ChatGPT and Claude for development
+                    assistance and successfully submitted to the App Store
+                  </li>
+                </ul>
+              </div>
+              <div className="py-4">
+                <h1 className="py-2">Ranked Choice Voting System</h1>
+                <ul className="list-disc px-4">
+                  <li>
+                    Engineered a Solidity-based smart contract incorporating Chainlink Automation
+                    for time-triggered election phase transitions, enhancing efficiency and
+                    transparency
+                  </li>
+                  <li>
+                    Leveraged Remix IDE and Hardhat framework for comprehensive development,
+                    including writing and executing unit tests and election process simulation
+                    scripts
+                  </li>
+                  {/* <li>
+                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
+                  tests and conduct manual code reviews on smart contracts
+                </li> */}
+                </ul>
+              </div>
+              <div className="py-4">
+                <h1 className="py-2">Ethereum Marketplace</h1>
+                <ul className="list-disc px-4">
+                  <li>
+                    Designed and implemented a Solidity smart contract enabling secure,
+                    Ethereum-based course purchases with seamless Metamask integration for
+                    transactions
+                  </li>
+                  <li>
+                    Crafted a responsive front-end using Next.js and Tailwind CSS, integrating
+                    web3.js for blockchain interaction, and utilized Truffle, Ganache, and Mocha for
+                    robust testing and development
+                  </li>
+                  {/* <li>
+                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
+                  tests and conduct manual code reviews on smart contracts
+                </li> */}
+                </ul>
+              </div>
+              <div className="py-4">
+                <h1 className="py-2">Decentralized Lottery</h1>
+                <ul className="list-disc px-4">
+                  <li>
+                    Developed a hybrid smart contract leveraging Chainlink VRF (Verifiable Random
+                    Function) for provably fair winner selection and Chainlink Keepers for automated
+                    lottery execution
+                  </li>
+                  <li>
+                    Created an intuitive user interface with Next.js and Tailwind CSS, integrating
+                    web3.js for seamless blockchain interaction and smart contract calls
+                  </li>
+                  {/* <li>
+                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
+                  tests and conduct manual code reviews on smart contracts
+                </li> */}
+                </ul>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
           <AccordionItem value="item-1" className="text-md">
             <AccordionTrigger className="flex w-full">
               <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
@@ -51,35 +143,6 @@ const Experience = () => {
                   Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
                   tests and conduct manual code reviews on smart contracts
                 </li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="item-2" className="text-md">
-            <AccordionTrigger className="flex w-full">
-              <div className="flex w-full items-center p-3 md:flex-row md:justify-between">
-                <div className="text-left font-medium">Full Stack Developer - web3</div>
-                <span className="md:text-small mt-0.5 hidden pr-3 text-sm text-gray-11 md:mt-1 md:block">
-                  July 2022 - Present
-                </span>
-              </div>
-              <div className="space-x-2 md:hidden">
-                <span className="md:text-small mt-0.5 text-sm text-gray-11 md:mt-1">
-                  July 2022 - Present
-                </span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-3">
-              {/* <p className="text-md font-semibold">
-                Smart Contract Auditor - Code4Arena , Shelock DeFi
-              </p> */}
-              <ul className="list-disc px-4">
-                <li>
-                  Developed Decentralized applications written in solidity using foundry and hardhat
-                </li>
-                {/* <li>
-                  Utilized tools like foundry, hardhat, slither, etc. in order to write invariant
-                  tests and conduct manual code reviews on smart contracts
-                </li> */}
               </ul>
             </AccordionContent>
           </AccordionItem>
