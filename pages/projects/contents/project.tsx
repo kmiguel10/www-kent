@@ -5,8 +5,10 @@ import {
   CircleDollarSign,
   ExternalLink,
   Github,
+  Hand,
   KanbanSquare,
   Landmark,
+  Link,
   Swords,
   Twitter,
   UserCircle2,
@@ -28,6 +30,16 @@ type ProjectProps = {
 };
 
 const data: ProjectProps[] = [
+  {
+    id: 8,
+    symbol: <Hand />,
+    name: 'Owemee',
+    description: '',
+    buttonIcon: <Link />,
+    buttonTitle: 'Website',
+    buttonRef: 'https://www.owemee.app',
+    body: 'Owemee is the ultimate expense-splitting app that takes the hassle out of shared costs.',
+  },
   {
     id: 7,
     symbol: <Landmark />,
