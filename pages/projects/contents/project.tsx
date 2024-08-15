@@ -9,6 +9,7 @@ import {
   KanbanSquare,
   Landmark,
   Link,
+  ShoppingCart,
   Swords,
   Twitter,
   UserCircle2,
@@ -30,6 +31,16 @@ type ProjectProps = {
 };
 
 const data: ProjectProps[] = [
+  {
+    id: 9,
+    symbol: <ShoppingCart />,
+    name: 'NFT Marketplace',
+    description: '',
+    buttonIcon: <Link />,
+    buttonTitle: 'Website',
+    buttonRef: 'https://nft-marketplace-scaffold.vercel.app/',
+    body: 'An NFT marketplace where you can list and buy NFTs.',
+  },
   {
     id: 8,
     symbol: <Hand />,
