@@ -56,7 +56,7 @@ const data: ProjectProps[] = [
     symbol: <Landmark />,
     name: 'Good Congress',
     description: '',
-    buttonRef: 'https://github.com/kmiguel10/good-congress',
+    buttonRef: 'https://the-good-congress.vercel.app/',
     body: 'Watch the current status of elected representatives, voting history, and fundraising activities',
   },
   {
