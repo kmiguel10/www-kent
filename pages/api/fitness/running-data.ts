@@ -2,7 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
 
-const RUNNING_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
+const RUNNING_TYPES = [
+  // Strava
+  'Run', 'TrailRun', 'VirtualRun',
+  // Garmin (typeKey format)
+  'running', 'treadmill_running', 'trail_running', 'track_running', 'indoor_running', 'virtual_run',
+];
 
 type ResponseData = {
   monthly: MonthlyData[];

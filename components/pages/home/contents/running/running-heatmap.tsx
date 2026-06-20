@@ -105,36 +105,25 @@ const RunningFeatureDetailHeatmap: FC<RunningFeatureDetailHeatmapProps> = ({
     [runningLogs, year],
   );
   const logs = useMemo(() => {
-    // First day of the year `year`.
-    const date = new Date(Date.UTC(year, 0, 1));
-    // The array of heatmap squares.
-    const days: (MileageLog | null | undefined)[][] = [];
-
-    // Initialize array to `[53][7]`.
-    for (let i = 0; i < 7; ++i) {
-      days.push(new Array(53).fill(null));
+    // Build a date-keyed lookup so sparse data (e.g. only run days) still lands
+    // in the correct calendar cell instead of shifting left.
+    const logByDate = new Map<string, MileageLog>();
+    for (const log of filteredLogs) {
+      logByDate.set(log.date.slice(0, 10), log);
     }
 
-    // Iterate through `arr`
-    for (let i = 0; i < filteredLogs.length; ++i) {
-      // We first retrieve `currentUTCDate.getUTCDay()` for which row (i.e.
-      // which day).
-      // `Math.floor(i / 7) + (date.getUTCDay() < dayOffset ? 1 : 0)` gets us
-      // the correct ``x'' position. We refer to `dayOffset` that we computed
-      // earlier to correctly leave the first few cells null.
-      const currentDate = new Date(filteredLogs[i].date);
-      const currentUTCDate = new Date(
-        Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()),
-      );
-      days[currentUTCDate.getUTCDay()][Math.floor(i / 7) + (date.getUTCDay() < dayOffset ? 1 : 0)] =
-        filteredLogs[i] ? filteredLogs[i] : null;
-      date.setUTCDate(date.getUTCDate() + 1);
-    }
+    const days: (MileageLog | null | undefined)[][] = Array(7)
+      .fill(null)
+      .map(() => new Array(53).fill(null));
 
     const daysInYear = year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0) ? 366 : 365;
-    for (let i = filteredLogs.length; i < daysInYear; ++i) {
-      days[new Date(date).getUTCDay()][Math.floor(i / 7) + (date.getUTCDay() < dayOffset ? 1 : 0)] =
-        undefined;
+    const date = new Date(Date.UTC(year, 0, 1));
+
+    for (let i = 0; i < daysInYear; i++) {
+      const dow = date.getUTCDay();
+      const col = Math.floor((i + dayOffset) / 7);
+      const key = date.toISOString().slice(0, 10);
+      days[dow][col] = logByDate.get(key) ?? undefined;
       date.setUTCDate(date.getUTCDate() + 1);
     }
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Dumbbell } from 'lucide-react';
 import clsx from 'clsx';
@@ -8,6 +8,7 @@ import FitnessHeatmap from './fitness-heatmap';
 import FitnessAreaChart from './fitness-area-chart';
 import FitnessBarChart from './fitness-bar-chart';
 import FitnessActivities from './fitness-activities';
+import FitnessInsights from './fitness-insights';
 
 type Unit = 'km' | 'mi';
 type Source = 'all' | 'strava' | 'garmin';
@@ -46,6 +47,36 @@ function PillButton({
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={clsx('animate-pulse rounded-md bg-gray-4', className)} />;
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="flex flex-col justify-between rounded-xl border border-gray-6 bg-gray-2 p-4">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="mt-3 h-8 w-24" />
+    </div>
+  );
+}
+
+function SectionCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={clsx('flex w-full flex-col overflow-hidden rounded-xl border border-gray-6 bg-gray-2', className)}>
+      <div className="flex h-[4.5rem] items-center space-x-2.5 border-b border-gray-7 px-4">
+        <Skeleton className="h-10 w-10 rounded" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <div className="p-4">
+        <Skeleton className="h-32 w-full" />
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="flex flex-col justify-between rounded-xl border border-gray-6 bg-gray-2 p-4">
@@ -77,10 +108,22 @@ function SectionCard({
   );
 }
 
-export default function FitnessDashboard({ activities }: { activities: FitnessActivity[] }) {
+export default function FitnessDashboard() {
+  const [activities, setActivities] = useState<FitnessActivity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [unit, setUnit] = useState<Unit>('km');
   const [source, setSource] = useState<Source>('all');
   const [sportType, setSportType] = useState('all');
+
+  useEffect(() => {
+    fetch('/api/fitness/activities')
+      .then((r) => r.json())
+      .then((data: FitnessActivity[]) => {
+        setActivities(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const sportTypes = useMemo(() => {
     const types = new Set(activities.map((a) => a.sport_type).filter(Boolean) as string[]);
@@ -110,6 +153,38 @@ export default function FitnessDashboard({ activities }: { activities: FitnessAc
       ),
     [filtered],
   );
+
+  if (loading) {
+    return (
+      <div className="flex flex-col space-y-4">
+        {/* Controls skeleton */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <div className="h-4 w-px bg-gray-6" />
+          <Skeleton className="h-8 w-20 rounded" />
+        </div>
+
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)}
+        </div>
+
+        {/* Heatmap skeleton */}
+        <SectionCardSkeleton />
+
+        {/* Charts row skeleton */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <SectionCardSkeleton className="h-72" />
+          <SectionCardSkeleton className="h-72" />
+        </div>
+
+        {/* Activities skeleton */}
+        <SectionCardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col space-y-4">
@@ -162,6 +237,9 @@ export default function FitnessDashboard({ activities }: { activities: FitnessAc
         />
       </div>
 
+      {/* Insights */}
+      <FitnessInsights activities={filtered} unit={unit} />
+
       {/* Heatmap */}
       <SectionCard title="Activity Heatmap" description="Daily workout frequency" symbol={<Dumbbell size={16} />}>
         <FitnessHeatmap activities={filtered} />
@@ -194,7 +272,7 @@ export default function FitnessDashboard({ activities }: { activities: FitnessAc
         description={`${filtered.length} total`}
         symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>}
       >
-        <FitnessActivities activities={filtered.slice(0, 20)} unit={unit} />
+        <FitnessActivities activities={filtered} unit={unit} />
       </SectionCard>
     </div>
   );
