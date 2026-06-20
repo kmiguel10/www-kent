@@ -34,7 +34,8 @@ const SQ = 12, GAP = 2;
 // ── helpers ──────────────────────────────────────────────────────────────────
 function fmtDur(mins: number | null) {
   if (!mins) return '—';
-  const h = Math.floor(mins / 60), m = mins % 60;
+  const total = Math.round(mins);
+  const h = Math.floor(total / 60), m = total % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 function fmtDate(d: string) {
@@ -58,6 +59,57 @@ function scoreLabel(s: number | null): string {
   if (s >= 75) return 'Good';
   if (s >= 60) return 'Fair';
   return 'Poor';
+}
+
+function generateSleepInsight(records: FitnessSleepRecord[]): string {
+  if (records.length < 3) return `${records.length} nights of sleep data tracked.`;
+  const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  const last7 = sorted.slice(-7);
+  const prev7 = sorted.slice(-14, -7);
+  const score7 = avgOf(last7.map((r) => r.sleep_score));
+  const scorePrev = avgOf(prev7.map((r) => r.sleep_score));
+  const dur7 = avgOf(last7.map((r) => r.duration_minutes));
+  const best = sorted.slice(-30).reduce((b, r) =>
+    (r.sleep_score ?? 0) > (b?.sleep_score ?? 0) ? r : b, sorted[sorted.length - 1]);
+
+  let text = '';
+  if (score7 != null && scorePrev != null) {
+    const diff = Math.round(score7 - scorePrev);
+    const label = scoreLabel(Math.round(score7));
+    if (diff > 5)       text = `Sleep score improved ${diff} pts this week — averaging ${Math.round(score7)} (${label}).`;
+    else if (diff < -5) text = `Sleep score dropped ${Math.abs(diff)} pts this week — averaging ${Math.round(score7)} (${label}).`;
+    else                text = `Sleep score is consistent at ${Math.round(score7)} (${label}), similar to last week.`;
+  } else if (score7 != null) {
+    text = `Averaging ${Math.round(score7)} sleep score (${scoreLabel(Math.round(score7))}) over the last ${last7.length} nights.`;
+  }
+  if (dur7 != null) text += ` Getting ${fmtDur(dur7)} per night on average.`;
+  if (best?.sleep_score != null && best.sleep_score >= 80)
+    text += ` Best recent night: ${fmtDate(best.date)} with a score of ${best.sleep_score}.`;
+  return text || `${records.length} nights tracked.`;
+}
+
+function generateRecoveryInsight(records: FitnessRecoveryRecord[]): string {
+  if (records.length < 3) return `${records.length} recovery records tracked.`;
+  const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  const last7 = sorted.slice(-7);
+  const prev7 = sorted.slice(-14, -7);
+  const hrv7 = avgOf(last7.map((r) => r.hrv));
+  const hrvPrev = avgOf(prev7.map((r) => r.hrv));
+  const hr7 = avgOf(last7.map((r) => r.resting_hr));
+  const latest = sorted[sorted.length - 1];
+
+  const parts: string[] = [];
+  if (hrv7 != null && hrvPrev != null) {
+    const diff = Math.round(hrv7 - hrvPrev);
+    if (diff > 3)       parts.push(`HRV up ${diff} ms this week (${Math.round(hrv7)} ms avg) — recovery trending well.`);
+    else if (diff < -3) parts.push(`HRV down ${Math.abs(diff)} ms this week (${Math.round(hrv7)} ms avg) — body under some load.`);
+    else                parts.push(`HRV stable at ${Math.round(hrv7)} ms this week.`);
+  } else if (hrv7 != null) {
+    parts.push(`Avg HRV ${Math.round(hrv7)} ms over the last ${last7.length} nights.`);
+  }
+  if (hr7 != null) parts.push(`Resting HR averaging ${Math.round(hr7)} bpm.`);
+  if (latest?.body_battery_high != null) parts.push(`Body Battery peaked at ${latest.body_battery_high} yesterday.`);
+  return parts.join(' ') || `${records.length} recovery records tracked.`;
 }
 
 // ── shared tooltip ───────────────────────────────────────────────────────────
@@ -329,8 +381,15 @@ function SleepTab({ records }: { records: FitnessSleepRecord[] }) {
     return <div className="flex h-48 items-center justify-center text-sm text-gray-10">No sleep data yet.</div>;
   }
 
+  const insight = useMemo(() => generateSleepInsight(records), [records]);
+
   return (
     <div className="space-y-6 p-4">
+      {/* Insight */}
+      <div className="rounded-lg border border-blue-6/50 bg-blue-3/60 px-4 py-3">
+        <p className="text-sm leading-relaxed text-blue-11">{insight}</p>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Avg Duration" value={fmtDur(avgOf(records.map((r) => r.duration_minutes)))} />
@@ -405,8 +464,15 @@ function RecoveryTab({ records }: { records: FitnessRecoveryRecord[] }) {
     return <div className="flex h-48 items-center justify-center text-sm text-gray-10">No recovery data yet.</div>;
   }
 
+  const insight = useMemo(() => generateRecoveryInsight(records), [records]);
+
   return (
     <div className="space-y-6 p-4">
+      {/* Insight */}
+      <div className="rounded-lg border border-purple-6/50 bg-purple-3/60 px-4 py-3">
+        <p className="text-sm leading-relaxed text-purple-11">{insight}</p>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Avg HRV"          value={avgOf(records.map((r) => r.hrv)) != null ? `${Math.round(avgOf(records.map((r) => r.hrv))!)} ms` : '—'} color="text-purple-400" />
