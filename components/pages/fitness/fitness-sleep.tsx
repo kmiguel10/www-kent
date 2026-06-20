@@ -336,11 +336,58 @@ const STAGES = [
   { key: 'awake', label: 'Awake', color: '#E5484D' },
 ] as const;
 
+type StagesView = 'week' | 'month' | 'all';
+
 function WeeklySleepStages({ records }: { records: FitnessSleepRecord[] }) {
-  const weeks = useMemo(() => {
+  const [view, setView] = useState<StagesView>('all');
+
+  const fmtH = (h: number) => {
+    const total = Math.round(h * 60);
+    const hh = Math.floor(total / 60), mm = total % 60;
+    return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;
+  };
+
+  const toH = (mins: number | null) => mins != null ? +(mins / 60).toFixed(2) : 0;
+
+  const data = useMemo(() => {
+    const sorted = [...records]
+      .filter((r) => r.duration_minutes)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const now = new Date();
+
+    if (view === 'week') {
+      const dow = (now.getDay() + 6) % 7;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dow);
+      const mondayStr = monday.toISOString().slice(0, 10);
+      const DAY = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return sorted
+        .filter((r) => r.date >= mondayStr)
+        .map((r) => ({
+          label: DAY[(new Date(r.date + 'T12:00:00').getDay() + 6) % 7],
+          deep:  toH(r.deep_minutes),
+          rem:   toH(r.rem_minutes),
+          light: toH(r.light_minutes),
+          awake: toH(r.awake_minutes),
+        }));
+    }
+
+    if (view === 'month') {
+      const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      return sorted
+        .filter((r) => r.date >= monthStr)
+        .map((r) => ({
+          label: String(parseInt(r.date.slice(8, 10))),
+          deep:  toH(r.deep_minutes),
+          rem:   toH(r.rem_minutes),
+          light: toH(r.light_minutes),
+          awake: toH(r.awake_minutes),
+        }));
+    }
+
+    // 'all' — weekly averages
     const map = new Map<string, { deep: number[]; rem: number[]; light: number[]; awake: number[] }>();
-    for (const r of records) {
-      if (!r.duration_minutes) continue;
+    for (const r of sorted) {
       const d = new Date(r.date + 'T12:00:00');
       const dow = (d.getDay() + 6) % 7;
       const mon = new Date(d);
@@ -353,39 +400,59 @@ function WeeklySleepStages({ records }: { records: FitnessSleepRecord[] }) {
       if (r.light_minutes != null) b.light.push(r.light_minutes);
       if (r.awake_minutes != null) b.awake.push(r.awake_minutes);
     }
+    const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, c) => a + c) / arr.length / 60).toFixed(2) : 0;
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([week, b]) => {
-        const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, c) => a + c) / arr.length / 60).toFixed(2) : 0;
-        return {
-          week: fmtDate(week),
-          deep:  avg(b.deep),
-          rem:   avg(b.rem),
-          light: avg(b.light),
-          awake: avg(b.awake),
-        };
-      });
-  }, [records]);
+      .map(([week, b]) => ({
+        label: fmtDate(week),
+        deep:  avg(b.deep),
+        rem:   avg(b.rem),
+        light: avg(b.light),
+        awake: avg(b.awake),
+      }));
+  }, [records, view]);
 
-  if (!weeks.length) return null;
+  if (!data.length && view !== 'all') {
+    return (
+      <div className="flex h-32 items-center justify-center text-sm text-gray-10">
+        No data for this period yet.
+      </div>
+    );
+  }
+  if (!data.length) return null;
 
-  const fmtH = (h: number) => {
-    const total = Math.round(h * 60);
-    const hh = Math.floor(total / 60), mm = total % 60;
-    return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;
-  };
+  const tooltipHeader = view === 'week' ? (l: string) => l
+    : view === 'month' ? (l: string) => `Day ${l}`
+    : (l: string) => `Week of ${l}`;
+
+  const xInterval = view === 'week' ? 0
+    : view === 'month' ? Math.max(0, Math.floor(data.length / 10) - 1)
+    : Math.max(0, Math.floor(data.length / 12) - 1);
 
   return (
     <div className="space-y-3">
+      {/* Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex overflow-hidden rounded-md border border-gray-6">
+          {([['week', 'This Week'], ['month', 'This Month'], ['all', 'Historical']] as [StagesView, string][]).map(([v, lbl]) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={clsx(
+                'px-3 py-1 text-xs font-medium transition-colors',
+                view === v ? 'bg-gray-4 text-gray-12' : 'text-gray-11 hover:bg-gray-3',
+              )}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <ResponsiveContainer width="100%" height={180}>
-        <BarChart data={weeks} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="20%">
+        <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="20%">
           <CartesianGrid strokeDasharray="3 3" stroke="#3c3f44" vertical={false} />
-          <XAxis
-            dataKey="week"
-            tick={{ fontSize: 10, fill: '#696e77' }}
-            tickLine={false}
-            interval={Math.max(0, Math.floor(weeks.length / 12) - 1)}
-          />
+          <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#696e77' }} tickLine={false} interval={xInterval} />
           <YAxis tick={{ fontSize: 10, fill: '#696e77' }} tickLine={false} unit="h" />
           <RechartsTip
             content={({ active, payload, label }: any) => {
@@ -393,11 +460,11 @@ function WeeklySleepStages({ records }: { records: FitnessSleepRecord[] }) {
               const total = payload.reduce((s: number, p: any) => s + (p.value ?? 0), 0);
               return (
                 <div className="rounded-lg border border-gray-6 bg-gray-2 px-3 py-2 text-xs shadow-lg">
-                  <div className="mb-1.5 font-medium text-gray-11">Week of {label}</div>
+                  <div className="mb-1.5 font-medium text-gray-11">{tooltipHeader(label)}</div>
                   {[...payload].reverse().map((p: any) => (
                     <div key={p.dataKey} className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.fill }} />
-                      <span className="text-gray-10 w-10">{p.name}:</span>
+                      <span className="w-10 text-gray-10">{p.name}:</span>
                       <span className="font-medium text-gray-12">{fmtH(p.value)}</span>
                     </div>
                   ))}
@@ -409,7 +476,7 @@ function WeeklySleepStages({ records }: { records: FitnessSleepRecord[] }) {
             }}
           />
           {STAGES.map((s) => (
-            <Bar key={s.key} dataKey={s.key} name={s.label} stackId="stages" fill={s.color} fillOpacity={0.85} />
+            <Bar key={s.key} dataKey={s.key} name={s.label} stackId="stages" fill={s.color} fillOpacity={0.85} radius={view !== 'all' ? [3, 3, 0, 0] : undefined} />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -510,7 +577,7 @@ function SleepTab({ records }: { records: FitnessSleepRecord[] }) {
 
       {/* Weekly sleep stages */}
       <div>
-        <div className="mb-2 text-sm font-medium text-gray-11">Sleep Stages · weekly avg</div>
+        <div className="mb-2 text-sm font-medium text-gray-11">Sleep Stages</div>
         <WeeklySleepStages records={records} />
       </div>
 
