@@ -40,7 +40,7 @@ const FitnessPage: NextPage<Props> = ({ activities }) => {
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const { data, error } = await fitnessSupabase
+  const { data, error } = await fitnessSupabase()
     .from('activities')
     .select('id, source, name, sport_type, start_time, duration_seconds, distance_meters, calories, avg_heart_rate')
     .order('start_time', { ascending: false })

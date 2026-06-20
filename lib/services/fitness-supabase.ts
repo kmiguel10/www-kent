@@ -1,10 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// Server-side only client pointing to the strava-garmin-mcp Supabase database.
-// Add FITNESS_SUPABASE_URL and FITNESS_SUPABASE_SERVICE_ROLE_KEY to Vercel env vars.
-const fitnessSupabase = createClient(
-  process.env.FITNESS_SUPABASE_URL!,
-  process.env.FITNESS_SUPABASE_SERVICE_ROLE_KEY!,
-);
+// Lazy singleton — defers createClient until first call so missing env vars
+// at build time don't crash module evaluation.
+let _client: SupabaseClient | null = null;
 
-export default fitnessSupabase;
+function getFitnessSupabase(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.FITNESS_SUPABASE_URL;
+    const key = process.env.FITNESS_SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('FITNESS_SUPABASE_URL and FITNESS_SUPABASE_SERVICE_ROLE_KEY must be set');
+    _client = createClient(url, key);
+  }
+  return _client;
+}
+
+export default getFitnessSupabase;
