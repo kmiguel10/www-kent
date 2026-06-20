@@ -24,13 +24,11 @@ export default async function handler(
       supabase
         .from('sleep_records')
         .select('id, date, sleep_start, sleep_end, duration_minutes, deep_minutes, light_minutes, rem_minutes, awake_minutes, sleep_score, sleep_stress, respiration_avg, pulse_ox_avg')
-        .order('date', { ascending: false })
-        .limit(365),
+        .order('date', { ascending: false }),
       supabase
         .from('recovery_records')
         .select('id, date, resting_hr, hrv, hrv_status, body_battery_high, body_battery_low, stress_avg, training_readiness, recovery_time_hours')
-        .order('date', { ascending: false })
-        .limit(365),
+        .order('date', { ascending: false }),
     ]);
 
     if (sleepResult.error) throw sleepResult.error;
