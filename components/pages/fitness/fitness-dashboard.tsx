@@ -246,13 +246,13 @@ export default function FitnessDashboard() {
       </div>
 
       {/* Insights */}
-      <FitnessInsights activities={filtered} unit={unit} />
+      <FitnessInsights activities={filtered} unit={unit} sleep={sleepRecords} />
 
       {/* Best Efforts */}
       <FitnessBestEfforts activities={filtered} unit={unit} />
 
       {/* Sleep & Recovery */}
-      <FitnessSleep sleep={sleepRecords} recovery={recoveryRecords} />
+      <FitnessSleep sleep={sleepRecords} recovery={recoveryRecords} activities={filtered} unit={unit} />
 
       {/* Heatmap */}
       <SectionCard title="Activity Heatmap" description="Daily workout frequency" symbol={<Dumbbell size={16} />}>

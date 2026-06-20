@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip,
 } from 'recharts';
-import type { FitnessActivity } from '@/pages/fitness';
+import type { FitnessActivity, FitnessSleepRecord } from '@/pages/fitness';
 
 type Unit = 'km' | 'mi';
 type Tab = 'week' | 'month';
@@ -357,13 +357,48 @@ function TrendChart({ data, currentLabel, previousLabel, unit, daysInLastMonth }
 export default function FitnessInsights({
   activities,
   unit,
+  sleep,
 }: {
   activities: FitnessActivity[];
   unit: Unit;
+  sleep?: FitnessSleepRecord[];
 }) {
   const [tab, setTab] = useState<Tab>('month');
 
   const ins = useMemo(() => computeInsights(activities), [activities]);
+
+  const sleepStats = useMemo(() => {
+    if (!sleep?.length) return null;
+    const now = new Date();
+    const daysSinceMonday = (now.getUTCDay() + 6) % 7;
+    const thisMonday = new Date(now);
+    thisMonday.setUTCDate(now.getUTCDate() - daysSinceMonday);
+    thisMonday.setUTCHours(0, 0, 0, 0);
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setUTCDate(thisMonday.getUTCDate() - 7);
+    const daysIntoWeek = daysSinceMonday + 1;
+    const lastWeekSameEnd = new Date(lastMonday);
+    lastWeekSameEnd.setUTCDate(lastMonday.getUTCDate() + daysIntoWeek);
+    const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const dayOfMonth = now.getUTCDate();
+    const lastMonthSameEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, dayOfMonth + 1));
+
+    function avgScore(start: Date, end: Date): number {
+      const recs = sleep!.filter((r) => {
+        const d = new Date(r.date + 'T12:00:00Z');
+        return d >= start && d < end && r.sleep_score != null;
+      });
+      return recs.length ? Math.round(recs.reduce((s, r) => s + r.sleep_score!, 0) / recs.length) : 0;
+    }
+
+    return {
+      weekCurr: avgScore(thisMonday, now),
+      weekPrev: avgScore(lastMonday, lastWeekSameEnd),
+      monthCurr: avgScore(thisMonthStart, now),
+      monthPrev: avgScore(lastMonthStart, lastMonthSameEnd),
+    };
+  }, [sleep]);
 
   if (activities.length === 0) return null;
 
@@ -435,6 +470,14 @@ export default function FitnessInsights({
           <StatCompare label="Distance"   curr={curr.distanceKm}    prev={prev.distanceKm}    format={fmtDist} />
           <StatCompare label="Time"       curr={curr.durationHours} prev={prev.durationHours} format={fmtTime} />
           <StatCompare label="Calories"   curr={curr.calories}      prev={prev.calories}       format={fmtCal} />
+          {sleepStats && (sleepStats.weekCurr > 0 || sleepStats.monthCurr > 0) && (
+            <StatCompare
+              label="Sleep Score"
+              curr={isWeek ? sleepStats.weekCurr : sleepStats.monthCurr}
+              prev={isWeek ? sleepStats.weekPrev : sleepStats.monthPrev}
+              format={n => n > 0 ? String(n) : '—'}
+            />
+          )}
         </div>
 
         <p className="text-right text-[10px] text-gray-10">
