@@ -1,4 +1,4 @@
-import { FileText, FolderKanban, Ghost, Home, PenLine } from 'lucide-react';
+import { Dumbbell, FileText, FolderKanban, Ghost, Home, PenLine } from 'lucide-react';
 
 import type { Page } from '@/lib/types/site';
 
@@ -12,6 +12,7 @@ export const NAVBAR_PAGES: Page[] = [
   { name: 'Projects', slug: '/projects', icon: <FolderKanban /> },
   { name: 'About Me', slug: '/about', icon: <Ghost /> },
   { name: 'Blog', slug: '/blog', icon: <PenLine /> },
+  { name: 'Fitness', slug: '/fitness', icon: <Dumbbell /> },
 ];
 
 /**
