@@ -328,6 +328,104 @@ function WeeklySleepScore({ records }: { records: FitnessSleepRecord[] }) {
   );
 }
 
+// ── Weekly Sleep Stages stacked bar ──────────────────────────────────────────
+const STAGES = [
+  { key: 'deep',  label: 'Deep',  color: '#0090FF' },
+  { key: 'rem',   label: 'REM',   color: '#8E4EC6' },
+  { key: 'light', label: 'Light', color: '#60646c' },
+  { key: 'awake', label: 'Awake', color: '#E5484D' },
+] as const;
+
+function WeeklySleepStages({ records }: { records: FitnessSleepRecord[] }) {
+  const weeks = useMemo(() => {
+    const map = new Map<string, { deep: number[]; rem: number[]; light: number[]; awake: number[] }>();
+    for (const r of records) {
+      if (!r.duration_minutes) continue;
+      const d = new Date(r.date + 'T12:00:00');
+      const dow = (d.getDay() + 6) % 7;
+      const mon = new Date(d);
+      mon.setDate(d.getDate() - dow);
+      const key = mon.toISOString().slice(0, 10);
+      if (!map.has(key)) map.set(key, { deep: [], rem: [], light: [], awake: [] });
+      const b = map.get(key)!;
+      if (r.deep_minutes  != null) b.deep.push(r.deep_minutes);
+      if (r.rem_minutes   != null) b.rem.push(r.rem_minutes);
+      if (r.light_minutes != null) b.light.push(r.light_minutes);
+      if (r.awake_minutes != null) b.awake.push(r.awake_minutes);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([week, b]) => {
+        const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, c) => a + c) / arr.length / 60).toFixed(2) : 0;
+        return {
+          week: fmtDate(week),
+          deep:  avg(b.deep),
+          rem:   avg(b.rem),
+          light: avg(b.light),
+          awake: avg(b.awake),
+        };
+      });
+  }, [records]);
+
+  if (!weeks.length) return null;
+
+  const fmtH = (h: number) => {
+    const total = Math.round(h * 60);
+    const hh = Math.floor(total / 60), mm = total % 60;
+    return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;
+  };
+
+  return (
+    <div className="space-y-3">
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={weeks} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="20%">
+          <CartesianGrid strokeDasharray="3 3" stroke="#3c3f44" vertical={false} />
+          <XAxis
+            dataKey="week"
+            tick={{ fontSize: 10, fill: '#696e77' }}
+            tickLine={false}
+            interval={Math.max(0, Math.floor(weeks.length / 12) - 1)}
+          />
+          <YAxis tick={{ fontSize: 10, fill: '#696e77' }} tickLine={false} unit="h" />
+          <RechartsTip
+            content={({ active, payload, label }: any) => {
+              if (!active || !payload?.length) return null;
+              const total = payload.reduce((s: number, p: any) => s + (p.value ?? 0), 0);
+              return (
+                <div className="rounded-lg border border-gray-6 bg-gray-2 px-3 py-2 text-xs shadow-lg">
+                  <div className="mb-1.5 font-medium text-gray-11">Week of {label}</div>
+                  {[...payload].reverse().map((p: any) => (
+                    <div key={p.dataKey} className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.fill }} />
+                      <span className="text-gray-10 w-10">{p.name}:</span>
+                      <span className="font-medium text-gray-12">{fmtH(p.value)}</span>
+                    </div>
+                  ))}
+                  <div className="mt-1.5 border-t border-gray-6 pt-1.5 text-gray-10">
+                    Total <span className="font-medium text-gray-12">{fmtH(total)}</span>
+                  </div>
+                </div>
+              );
+            }}
+          />
+          {STAGES.map((s) => (
+            <Bar key={s.key} dataKey={s.key} name={s.label} stackId="stages" fill={s.color} fillOpacity={0.85} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-10">
+        {STAGES.map((s) => (
+          <div key={s.key} className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
+            {s.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Stage bar ────────────────────────────────────────────────────────────────
 function StageBar({ rec }: { rec: FitnessSleepRecord }) {
   const total = (rec.deep_minutes ?? 0) + (rec.light_minutes ?? 0) + (rec.rem_minutes ?? 0) + (rec.awake_minutes ?? 0);
@@ -408,6 +506,12 @@ function SleepTab({ records }: { records: FitnessSleepRecord[] }) {
       <div>
         <div className="mb-2 text-sm font-medium text-gray-11">Weekly Avg Score · last 12 weeks</div>
         <WeeklySleepScore records={records} />
+      </div>
+
+      {/* Weekly sleep stages */}
+      <div>
+        <div className="mb-2 text-sm font-medium text-gray-11">Sleep Stages · weekly avg</div>
+        <WeeklySleepStages records={records} />
       </div>
 
       {/* Last night */}
