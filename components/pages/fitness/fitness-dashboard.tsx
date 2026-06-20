@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import clsx from 'clsx';
 
-import type { FitnessActivity } from '@/pages/fitness';
+import type { FitnessActivity, FitnessSleepRecord, FitnessRecoveryRecord } from '@/pages/fitness';
 import FitnessHeatmap from './fitness-heatmap';
 import FitnessAreaChart from './fitness-area-chart';
 import FitnessBarChart from './fitness-bar-chart';
 import FitnessActivities from './fitness-activities';
 import FitnessInsights from './fitness-insights';
 import FitnessBestEfforts from './fitness-best-efforts';
+import FitnessSleep from './fitness-sleep';
 
 type Unit = 'km' | 'mi';
 type Source = 'all' | 'strava' | 'garmin';
@@ -111,16 +112,22 @@ function SectionCard({
 
 export default function FitnessDashboard() {
   const [activities, setActivities] = useState<FitnessActivity[]>([]);
+  const [sleepRecords, setSleepRecords] = useState<FitnessSleepRecord[]>([]);
+  const [recoveryRecords, setRecoveryRecords] = useState<FitnessRecoveryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [unit, setUnit] = useState<Unit>('km');
   const [source, setSource] = useState<Source>('all');
   const [sportType, setSportType] = useState('all');
 
   useEffect(() => {
-    fetch('/api/fitness/activities')
-      .then((r) => r.json())
-      .then((data: FitnessActivity[]) => {
-        setActivities(data);
+    Promise.all([
+      fetch('/api/fitness/activities').then((r) => r.json()),
+      fetch('/api/fitness/sleep').then((r) => r.json()),
+    ])
+      .then(([activityData, sleepData]) => {
+        setActivities(activityData as FitnessActivity[]);
+        setSleepRecords(sleepData.sleep ?? []);
+        setRecoveryRecords(sleepData.recovery ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -243,6 +250,9 @@ export default function FitnessDashboard() {
 
       {/* Best Efforts */}
       <FitnessBestEfforts activities={filtered} unit={unit} />
+
+      {/* Sleep & Recovery */}
+      <FitnessSleep sleep={sleepRecords} recovery={recoveryRecords} />
 
       {/* Heatmap */}
       <SectionCard title="Activity Heatmap" description="Daily workout frequency" symbol={<Dumbbell size={16} />}>
