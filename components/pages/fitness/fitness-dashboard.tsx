@@ -9,6 +9,7 @@ import FitnessAreaChart from './fitness-area-chart';
 import FitnessBarChart from './fitness-bar-chart';
 import FitnessActivities from './fitness-activities';
 import FitnessInsights from './fitness-insights';
+import FitnessBestEfforts from './fitness-best-efforts';
 
 type Unit = 'km' | 'mi';
 type Source = 'all' | 'strava' | 'garmin';
@@ -239,6 +240,9 @@ export default function FitnessDashboard() {
 
       {/* Insights */}
       <FitnessInsights activities={filtered} unit={unit} />
+
+      {/* Best Efforts */}
+      <FitnessBestEfforts activities={filtered} unit={unit} />
 
       {/* Heatmap */}
       <SectionCard title="Activity Heatmap" description="Daily workout frequency" symbol={<Dumbbell size={16} />}>
