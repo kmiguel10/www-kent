@@ -20,7 +20,7 @@ const KentMiguelHeader: FC = () => {
           <div>
             <div className="text-base font-semibold md:text-2xl">Kent Miguel</div>
             <span className="mt-0.5 text-sm text-gray-11 md:mt-1 md:text-base">
-              Full-Stack Developer , Security Researcher
+              Software Engineer · American Express
               {/* Working on{' '} */}
               {/* <LinkPreview
               className="font-medium text-gray-12 hover:underline"

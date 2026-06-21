@@ -2,12 +2,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
 
-const RUNNING_TYPES = [
-  // Strava
-  'Run', 'TrailRun', 'VirtualRun',
-  // Garmin (typeKey format)
-  'running', 'treadmill_running', 'trail_running', 'track_running', 'indoor_running', 'virtual_run',
-];
 
 type ResponseData = {
   monthly: MonthlyData[];
@@ -24,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const { data, error } = await getFitnessSupabase()
       .from('activities')
       .select('start_time, distance_meters')
-      .in('sport_type', RUNNING_TYPES)
+      .eq('source', 'strava')
       .not('distance_meters', 'is', null)
       .order('start_time', { ascending: true });
 
@@ -44,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       if (!monthlyMap[key]) monthlyMap[key] = { value: 0, year, month };
       monthlyMap[key].value += km;
 
-      dailyMap[day] = (dailyMap[day] ?? 0) + km;
+      dailyMap[day] = (dailyMap[day] ?? 0) + 1;
     }
 
     const monthly: MonthlyData[] = Object.values(monthlyMap)

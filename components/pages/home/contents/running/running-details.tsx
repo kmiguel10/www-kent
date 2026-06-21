@@ -75,7 +75,7 @@ export default function RunningDetails({
       </Tabs.Content>
       <Tabs.Content value="heat-map" className={tabContentStyles} tabIndex={-1} asChild>
         <div className={clsx(tabContentStyles)}>
-          <RunningHeatMap runningLogs={dailyData} unit={LENGTH_UNITS[unitIndex]} />
+          <RunningHeatMap runningLogs={dailyData} />
         </div>
       </Tabs.Content>
     </Tabs.Root>

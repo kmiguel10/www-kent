@@ -20,10 +20,10 @@ const AboutMe = () => {
     >
       <div className="text-gray-11 px-4 py-4 text-sm">
         <p className="overflow-auto">
-          I am a full-stack developer with experience in React.js and Vue.js. I also have a strong
-          interest in the blockchain technology and web3. I was a previous fullstack developer at
-          Deloitte and I took a year off to travel in Europe. Now, I am looking for new job
-          opportunities.
+          Software engineer at American Express, building full-stack Banking features on the Internal
+          Servicing Platform. I specialize in end-to-end feature delivery, platform modernization,
+          and AI-powered developer tooling. Previously at Deloitte and Propulsion Technologies
+          International.
         </p>
       </div>
     </ContentDisplay>

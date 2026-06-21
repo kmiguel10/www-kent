@@ -23,8 +23,8 @@ const Running = () => {
   return (
     <ContentDisplay
       className="col-span-2 h-64 w-full min-[560px]:col-span-4"
-      name="Running"
-      description="Getting better at running"
+      name="Moving"
+      description="amateur triathlete"
       symbol={<Footprints />}
     >
       <RunningDetails runMonthlyData={runData} dailyData={dailyRunData} />
