@@ -107,7 +107,11 @@ export default function FitnessTrends({
     const readyMap     = new Map(recovery.map((r) => [r.date, r.training_readiness]));
 
     const allDates = Array.from(
-      new Set([...sleepMap.keys(), ...stressMap.keys(), ...hrvMap.keys()])
+      new Set([
+        ...Array.from(sleepMap.keys()),
+        ...Array.from(stressMap.keys()),
+        ...Array.from(hrvMap.keys()),
+      ])
     ).sort().filter((d) => new Date(d) >= cutoff);
 
     const avgs = {
