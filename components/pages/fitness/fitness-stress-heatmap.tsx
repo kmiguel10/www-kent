@@ -30,13 +30,19 @@ const FitnessStressHeatmap: FC<{ records: StressDayRecord[] }> = ({ records }) =
       const target = event.target as SVGPathElement;
       const dataDate = target.getAttribute('data-date') ?? undefined;
       const dataStress = target.getAttribute('data-stress') ?? undefined;
-      const data =
-        dataDate !== undefined && dataStress !== undefined
-          ? JSON.stringify({ date: dataDate, stress: dataStress })
-          : undefined;
+      if (dataDate === undefined || dataStress === undefined) return;
+      const rec = records.find((r) => r.date === dataDate);
+      const data = JSON.stringify({
+        date: dataDate,
+        stress: dataStress,
+        bb_high: rec?.body_battery_high ?? null,
+        bb_low: rec?.body_battery_low ?? null,
+        hrv: rec?.hrv ?? null,
+        resting_hr: rec?.resting_hr ?? null,
+      });
       showTooltip({ tooltipLeft: tLeft, tooltipTop: tTop, tooltipData: data });
     },
-    [containerBounds.left, containerBounds.top, showTooltip],
+    [containerBounds.left, containerBounds.top, records, showTooltip],
   );
 
   const stressByDate = useMemo(() => {
@@ -169,13 +175,35 @@ const FitnessStressHeatmap: FC<{ records: StressDayRecord[] }> = ({ records }) =
             {(() => {
               const d = JSON.parse(tooltipData);
               return (
-                <>
-                  <span className="font-medium">Avg stress: {d.stress}</span>
-                  <span className="ml-1 text-gray-11">on</span>{' '}
-                  {new Date(d.date).toLocaleDateString('en-US', {
-                    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
-                  })}
-                </>
+                <div className="flex flex-col gap-0.5">
+                  <div className="font-medium text-gray-12">
+                    {new Date(d.date).toLocaleDateString('en-US', {
+                      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+                    })}
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-11">
+                    <span className="w-20 text-xs">Avg stress</span>
+                    <span className="font-medium text-gray-12">{d.stress}</span>
+                  </div>
+                  {d.bb_high !== null && d.bb_low !== null && (
+                    <div className="flex items-center gap-1 text-gray-11">
+                      <span className="w-20 text-xs">Body battery</span>
+                      <span className="font-medium text-gray-12">{d.bb_high} → {d.bb_low}</span>
+                    </div>
+                  )}
+                  {d.hrv !== null && (
+                    <div className="flex items-center gap-1 text-gray-11">
+                      <span className="w-20 text-xs">HRV</span>
+                      <span className="font-medium text-gray-12">{Math.round(d.hrv)} ms</span>
+                    </div>
+                  )}
+                  {d.resting_hr !== null && (
+                    <div className="flex items-center gap-1 text-gray-11">
+                      <span className="w-20 text-xs">Resting HR</span>
+                      <span className="font-medium text-gray-12">{Math.round(d.resting_hr)} bpm</span>
+                    </div>
+                  )}
+                </div>
               );
             })()}
           </TooltipWithBounds>
