@@ -4,6 +4,7 @@ import { Dumbbell } from 'lucide-react';
 import clsx from 'clsx';
 
 import type { FitnessActivity, FitnessSleepRecord, FitnessRecoveryRecord } from '@/pages/fitness';
+import type { StressDayRecord } from '@/pages/api/fitness/stress-data';
 import FitnessHeatmap from './fitness-heatmap';
 import FitnessAreaChart from './fitness-area-chart';
 import FitnessBarChart from './fitness-bar-chart';
@@ -11,6 +12,7 @@ import FitnessActivities from './fitness-activities';
 import FitnessInsights from './fitness-insights';
 import FitnessBestEfforts from './fitness-best-efforts';
 import FitnessSleep from './fitness-sleep';
+import FitnessStressHeatmap from './fitness-stress-heatmap';
 
 type Unit = 'km' | 'mi';
 type Source = 'all' | 'strava' | 'garmin';
@@ -114,6 +116,7 @@ export default function FitnessDashboard() {
   const [activities, setActivities] = useState<FitnessActivity[]>([]);
   const [sleepRecords, setSleepRecords] = useState<FitnessSleepRecord[]>([]);
   const [recoveryRecords, setRecoveryRecords] = useState<FitnessRecoveryRecord[]>([]);
+  const [stressRecords, setStressRecords] = useState<StressDayRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [unit, setUnit] = useState<Unit>('km');
   const [source, setSource] = useState<Source>('all');
@@ -123,11 +126,13 @@ export default function FitnessDashboard() {
     Promise.all([
       fetch('/api/fitness/activities').then((r) => r.json()),
       fetch('/api/fitness/sleep').then((r) => r.json()),
+      fetch('/api/fitness/stress-data').then((r) => r.json()),
     ])
-      .then(([activityData, sleepData]) => {
+      .then(([activityData, sleepData, stressData]) => {
         setActivities(activityData as FitnessActivity[]);
         setSleepRecords(sleepData.sleep ?? []);
         setRecoveryRecords(sleepData.recovery ?? []);
+        setStressRecords(stressData as StressDayRecord[]);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -257,6 +262,15 @@ export default function FitnessDashboard() {
       {/* Heatmap */}
       <SectionCard title="Activity Heatmap" description="Daily workout frequency" symbol={<Dumbbell size={16} />}>
         <FitnessHeatmap activities={filtered} />
+      </SectionCard>
+
+      {/* Stress Heatmap */}
+      <SectionCard
+        title="Stress Heatmap"
+        description="Daily avg stress · year to date"
+        symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+      >
+        <FitnessStressHeatmap records={stressRecords} />
       </SectionCard>
 
       {/* Charts row */}
