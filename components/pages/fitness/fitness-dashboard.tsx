@@ -11,13 +11,14 @@ import FitnessBarChart from './fitness-bar-chart';
 import FitnessActivities from './fitness-activities';
 import FitnessInsights from './fitness-insights';
 import FitnessBestEfforts from './fitness-best-efforts';
+import FitnessCoaching from './fitness-coaching';
 import FitnessSleep from './fitness-sleep';
 import FitnessStressHeatmap from './fitness-stress-heatmap';
 import FitnessTrends from './fitness-trends';
 
 type Unit = 'km' | 'mi';
 type Source = 'all' | 'strava' | 'garmin';
-type PerfTab = 'insights' | 'best-efforts';
+type PerfTab = 'insights' | 'best-efforts' | 'coaching';
 type RecoveryTab = 'sleep' | 'stress' | 'trends';
 type TrainingTab = 'heatmap' | 'distance' | 'sports';
 
@@ -314,12 +315,14 @@ export default function FitnessDashboard() {
           tabs={[
             { key: 'insights' as PerfTab, label: 'Insights' },
             { key: 'best-efforts' as PerfTab, label: 'Best Efforts' },
+            { key: 'coaching' as PerfTab, label: 'Readiness' },
           ]}
           active={perfTab}
           onChange={setPerfTab}
         />
         {perfTab === 'insights' && <FitnessInsights activities={filtered} unit={unit} sleep={sleepRecords} />}
         {perfTab === 'best-efforts' && <FitnessBestEfforts activities={filtered} unit={unit} />}
+        {perfTab === 'coaching' && <FitnessCoaching sleep={sleepRecords} recovery={recoveryRecords} activities={filtered} />}
       </div>
 
       {/* ── Recovery ── */}
