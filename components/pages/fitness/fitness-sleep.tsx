@@ -46,6 +46,48 @@ function avgOf(arr: (number | null)[]): number | null {
   const v = arr.filter((x): x is number => x != null);
   return v.length ? Math.round((v.reduce((a, b) => a + b) / v.length) * 10) / 10 : null;
 }
+function sleepDriverText(p: {
+  score: number;
+  dur: number | null;
+  deep: number | null;
+  rem: number | null;
+  awake: number | null;
+}): string {
+  const { score, dur, deep, rem, awake } = p;
+  const issues: { label: string; sev: number }[] = [];
+
+  if (dur != null && dur < 360)
+    issues.push({ label: `short sleep (${fmtDur(dur)})`, sev: 3 });
+  if (awake != null && awake > 40)
+    issues.push({ label: `high wake time (${awake} min awake)`, sev: 2 });
+  if (deep != null && deep < 60)
+    issues.push({ label: `low deep sleep (${deep} min)`, sev: 2 });
+  if (rem != null && rem < 60)
+    issues.push({ label: `low REM (${rem} min)`, sev: 1 });
+
+  if (score >= 90) {
+    const goods: string[] = [];
+    if (deep != null && deep >= 85) goods.push(`strong deep sleep (${deep} min)`);
+    if (rem != null && rem >= 85) goods.push(`great REM (${rem} min)`);
+    if (awake != null && awake <= 15) goods.push('minimal wake time');
+    if (dur != null && dur >= 420) goods.push(`solid duration (${fmtDur(dur)})`);
+    return goods.length > 0
+      ? `Great night — ${goods.slice(0, 2).join(' and ')}.`
+      : 'All sleep stages well balanced.';
+  }
+
+  if (issues.length === 0) {
+    if (score >= 75) return 'Well-balanced sleep — no major stage deficits.';
+    return 'Sleep stages within range but recovery was limited.';
+  }
+
+  issues.sort((a, b) => b.sev - a.sev);
+  const top = issues.slice(0, 2).map((i) => i.label);
+
+  if (score < 60) return `Score hurt by ${top.join(' and ')}.`;
+  if (score < 75) return `Score held back by ${top.join(' and ')}.`;
+  return `Good night, though ${top.join(' and ')}.`;
+}
 function scoreColor(s: number | null): string {
   if (s == null) return 'transparent';
   if (s >= 90) return '#46A758';
@@ -224,7 +266,14 @@ const SleepHeatmap: FC<{ records: FitnessSleepRecord[] }> = ({ records }) => {
                   const d = `M${px} ${py}h${SQ-4}q1.5 0 1.5 1.5v${SQ-4}q0 1.5-1.5 1.5h-${SQ-4}q-1.5 0-1.5-1.5v-${SQ-4}q0-1.5 1.5-1.5z`;
                   const score = cell.rec?.sleep_score ?? null;
                   const tip = score != null
-                    ? JSON.stringify({ date: cell.date, score, dur: cell.rec?.duration_minutes })
+                    ? JSON.stringify({
+                        date: cell.date,
+                        score,
+                        dur: cell.rec?.duration_minutes ?? null,
+                        deep: cell.rec?.deep_minutes ?? null,
+                        rem: cell.rec?.rem_minutes ?? null,
+                        awake: cell.rec?.awake_minutes ?? null,
+                      })
                     : null;
                   return (
                     <path
@@ -252,15 +301,19 @@ const SleepHeatmap: FC<{ records: FitnessSleepRecord[] }> = ({ records }) => {
           >
             {(() => {
               const p = JSON.parse(tooltipData);
+              const driver = sleepDriverText(p);
               return (
                 <div>
                   <div className="font-medium" style={{ color: scoreColor(p.score) }}>
                     Score {p.score} · {scoreLabel(p.score)}
                   </div>
                   <div className="text-gray-10">
-                    {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
+                    {new Date(p.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
                     {p.dur != null && <span className="ml-2">{fmtDur(p.dur)}</span>}
                   </div>
+                  {driver && (
+                    <div className="mt-1 max-w-[200px] text-gray-11">{driver}</div>
+                  )}
                 </div>
               );
             })()}
@@ -532,6 +585,80 @@ function StatTile({ label, value, color }: { label: string; value: string; color
   );
 }
 
+// ── Day of Week Pattern ───────────────────────────────────────────────────────
+const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DOW_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon first
+
+function DayOfWeekPattern({ records }: { records: FitnessSleepRecord[] }) {
+  const data = useMemo(() => {
+    const buckets = Array(7).fill(null).map(() => ({
+      scores: [] as number[],
+      deep: [] as number[],
+      rem: [] as number[],
+      awake: [] as number[],
+      dur: [] as number[],
+    }));
+
+    for (const r of records) {
+      const dow = new Date(r.date + 'T12:00:00').getDay();
+      if (r.sleep_score != null)      buckets[dow].scores.push(r.sleep_score);
+      if (r.deep_minutes != null)     buckets[dow].deep.push(r.deep_minutes);
+      if (r.rem_minutes != null)      buckets[dow].rem.push(r.rem_minutes);
+      if (r.awake_minutes != null)    buckets[dow].awake.push(r.awake_minutes);
+      if (r.duration_minutes != null) buckets[dow].dur.push(r.duration_minutes);
+    }
+
+    const avg = (arr: number[]) =>
+      arr.length ? Math.round(arr.reduce((a, b) => a + b) / arr.length) : null;
+
+    return DOW_ORDER.map((dow) => ({
+      day: DOW_LABELS[dow],
+      score: avg(buckets[dow].scores),
+      deep: avg(buckets[dow].deep),
+      rem: avg(buckets[dow].rem),
+      awake: avg(buckets[dow].awake),
+      dur: avg(buckets[dow].dur),
+      nights: buckets[dow].scores.length,
+    }));
+  }, [records]);
+
+  if (!data.some((d) => d.score != null)) return null;
+
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#3c3f44" vertical={false} />
+        <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#696e77' }} tickLine={false} />
+        <YAxis tick={{ fontSize: 10, fill: '#696e77' }} tickLine={false} domain={[0, 100]} />
+        <RechartsTip
+          content={({ active, payload, label }: any) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0].payload;
+            if (d.score == null) return null;
+            return (
+              <div className="rounded-lg border border-gray-6 bg-gray-2 px-3 py-2 text-xs shadow-lg">
+                <div className="mb-1.5 font-medium" style={{ color: scoreColor(d.score) }}>
+                  {label} · {d.score} ({scoreLabel(d.score)})
+                </div>
+                {d.dur   != null && <div className="text-gray-10">Duration <span className="font-medium text-gray-12">{fmtDur(d.dur)}</span></div>}
+                {d.deep  != null && <div className="text-gray-10">Deep  <span className="font-medium text-blue-400">{d.deep} min</span></div>}
+                {d.rem   != null && <div className="text-gray-10">REM   <span className="font-medium text-purple-400">{d.rem} min</span></div>}
+                {d.awake != null && <div className="text-gray-10">Awake <span className="font-medium text-red-400">{d.awake} min</span></div>}
+                <div className="mt-1 text-gray-10">{d.nights} night{d.nights !== 1 ? 's' : ''} of data</div>
+              </div>
+            );
+          }}
+        />
+        <Bar dataKey="score" name="Avg Score" radius={[3, 3, 0, 0]}>
+          {data.map((d, i) => (
+            <Cell key={i} fill={scoreColor(d.score)} fillOpacity={d.score != null ? 0.8 : 0} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 // ── Sleep tab ────────────────────────────────────────────────────────────────
 function SleepTab({ records }: { records: FitnessSleepRecord[] }) {
   const sorted = useMemo(() => [...records].sort((a, b) => a.date.localeCompare(b.date)), [records]);
@@ -567,6 +694,12 @@ function SleepTab({ records }: { records: FitnessSleepRecord[] }) {
       <div>
         <div className="mb-2 text-sm font-medium text-gray-11">Sleep Score Heatmap</div>
         <SleepHeatmap records={records} />
+      </div>
+
+      {/* Day of week pattern */}
+      <div>
+        <div className="mb-2 text-sm font-medium text-gray-11">Sleep by Day of Week · avg score</div>
+        <DayOfWeekPattern records={records} />
       </div>
 
       {/* Weekly avg score */}
