@@ -220,9 +220,11 @@ export default function FitnessDashboard() {
     [activities, source, sportType],
   );
 
-  const stats = useMemo(
-    () =>
-      filtered.reduce(
+  const stats = useMemo(() => {
+    const currentYear = new Date().getFullYear().toString();
+    return filtered
+      .filter((a) => a.start_time.startsWith(currentYear))
+      .reduce(
         (acc, a) => ({
           count: acc.count + 1,
           distance: acc.distance + (a.distance_meters ?? 0),
@@ -230,9 +232,8 @@ export default function FitnessDashboard() {
           calories: acc.calories + (a.calories ?? 0),
         }),
         { count: 0, distance: 0, duration: 0, calories: 0 },
-      ),
-    [filtered],
-  );
+      );
+  }, [filtered]);
 
   if (loading) {
     return (
@@ -297,6 +298,9 @@ export default function FitnessDashboard() {
       </div>
 
       {/* Stats */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-widest text-gray-10">Year to date</span>
+      </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Activities" value={stats.count.toLocaleString()} />
         <StatCard label="Distance" value={fmtDistance(stats.distance, unit)} />
