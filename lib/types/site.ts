@@ -22,6 +22,7 @@ export type PageSlug =
   | '/about'
   | '/blog'
   | '/fitness'
+  | '/athlete-os'
   // Design pages
   | '/design'
   | '/design/color'
