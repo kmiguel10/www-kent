@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import clsx from 'clsx';
 
-import type { FitnessActivity, FitnessSleepRecord, FitnessRecoveryRecord } from '@/pages/fitness';
+import type {
+  FitnessActivity,
+  FitnessSleepRecord,
+  FitnessRecoveryRecord,
+  FitnessWhoopRecovery,
+  FitnessWhoopSleep,
+  FitnessWhoopCycle,
+} from '@/pages/fitness';
 import type { StressDayRecord } from '@/pages/api/fitness/stress-data';
 import FitnessHeatmap from './fitness-heatmap';
 import FitnessAreaChart from './fitness-area-chart';
@@ -15,11 +22,17 @@ import FitnessCoaching from './fitness-coaching';
 import FitnessSleep from './fitness-sleep';
 import FitnessStressHeatmap from './fitness-stress-heatmap';
 import FitnessTrends from './fitness-trends';
+import WhoopRecoveryView from './fitness-whoop-recovery';
+import WhoopSleepView from './fitness-whoop-sleep';
+import WhoopStrainView from './fitness-whoop-strain';
+import WhoopTrendsView from './fitness-whoop-trends';
 
 type Unit = 'km' | 'mi';
-type Source = 'all' | 'strava' | 'garmin';
+type Source = 'all' | 'strava' | 'garmin' | 'whoop';
 type PerfTab = 'insights' | 'best-efforts' | 'coaching';
-type RecoveryTab = 'sleep' | 'stress' | 'trends';
+type RecoverySource = 'garmin' | 'whoop';
+type GarminRecoveryTab = 'sleep' | 'stress' | 'trends';
+type WhoopRecoveryTab = 'recovery' | 'sleep' | 'strain' | 'trends';
 type TrainingTab = 'heatmap' | 'distance' | 'sports';
 
 const SPORT_LABELS: Record<string, string> = {
@@ -180,13 +193,18 @@ export default function FitnessDashboard() {
   const [sleepRecords, setSleepRecords] = useState<FitnessSleepRecord[]>([]);
   const [recoveryRecords, setRecoveryRecords] = useState<FitnessRecoveryRecord[]>([]);
   const [stressRecords, setStressRecords] = useState<StressDayRecord[]>([]);
+  const [whoopRecovery, setWhoopRecovery] = useState<FitnessWhoopRecovery[]>([]);
+  const [whoopSleep, setWhoopSleep] = useState<FitnessWhoopSleep[]>([]);
+  const [whoopCycles, setWhoopCycles] = useState<FitnessWhoopCycle[]>([]);
   const [loading, setLoading] = useState(true);
   const [unit, setUnit] = useState<Unit>('km');
   const [source, setSource] = useState<Source>('all');
   const [sportType, setSportType] = useState('all');
 
   const [perfTab, setPerfTab] = useState<PerfTab>('insights');
-  const [recoveryTab, setRecoveryTab] = useState<RecoveryTab>('sleep');
+  const [recoverySource, setRecoverySource] = useState<RecoverySource>('garmin');
+  const [garminTab, setGarminTab] = useState<GarminRecoveryTab>('sleep');
+  const [whoopTab, setWhoopTab] = useState<WhoopRecoveryTab>('recovery');
   const [trainingTab, setTrainingTab] = useState<TrainingTab>('heatmap');
 
   useEffect(() => {
@@ -194,12 +212,16 @@ export default function FitnessDashboard() {
       fetch('/api/fitness/activities').then((r) => r.json()),
       fetch('/api/fitness/sleep').then((r) => r.json()),
       fetch('/api/fitness/stress-data').then((r) => r.json()),
+      fetch('/api/fitness/whoop').then((r) => r.json()),
     ])
-      .then(([activityData, sleepData, stressData]) => {
+      .then(([activityData, sleepData, stressData, whoopData]) => {
         setActivities(activityData as FitnessActivity[]);
         setSleepRecords(sleepData.sleep ?? []);
         setRecoveryRecords(sleepData.recovery ?? []);
         setStressRecords(stressData as StressDayRecord[]);
+        setWhoopRecovery(whoopData.recovery ?? []);
+        setWhoopSleep(whoopData.sleep ?? []);
+        setWhoopCycles(whoopData.cycles ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -271,6 +293,9 @@ export default function FitnessDashboard() {
             <PillButton active={source === 'garmin'} onClick={() => setSource('garmin')} activeClass="bg-blue-900 border-blue-700 text-blue-300">
               Garmin
             </PillButton>
+            <PillButton active={source === 'whoop'} onClick={() => setSource('whoop')} activeClass="bg-purple-900 border-purple-700 text-purple-300">
+              WHOOP
+            </PillButton>
           </div>
           <div className="h-4 w-px bg-gray-6" />
           <div className="flex overflow-hidden rounded-md border border-gray-6">
@@ -331,36 +356,117 @@ export default function FitnessDashboard() {
 
       {/* ── Recovery ── */}
       <div className="flex flex-col gap-3">
-        <SectionGroup
-          label="Recovery"
-          tabs={[
-            { key: 'sleep' as RecoveryTab, label: 'Sleep & Recovery' },
-            { key: 'stress' as RecoveryTab, label: 'Stress' },
-            { key: 'trends' as RecoveryTab, label: 'Trends' },
-          ]}
-          active={recoveryTab}
-          onChange={setRecoveryTab}
-        />
-        {recoveryTab === 'sleep' && (
-          <FitnessSleep sleep={sleepRecords} recovery={recoveryRecords} activities={filtered} unit={unit} />
+        {/* Parent source selector: Garmin and WHOOP are co-equal data sources */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-widest text-gray-10">Recovery</span>
+          <div className="flex overflow-hidden rounded-md border border-gray-6">
+            <button
+              onClick={() => setRecoverySource('garmin')}
+              className={clsx(
+                'px-4 py-1 text-xs font-semibold transition-colors',
+                recoverySource === 'garmin' ? 'bg-blue-900 text-blue-300' : 'text-gray-11 hover:bg-gray-3',
+              )}
+            >
+              Garmin
+            </button>
+            <button
+              onClick={() => setRecoverySource('whoop')}
+              className={clsx(
+                'px-4 py-1 text-xs font-semibold transition-colors',
+                recoverySource === 'whoop' ? 'bg-purple-900 text-purple-300' : 'text-gray-11 hover:bg-gray-3',
+              )}
+            >
+              WHOOP
+            </button>
+          </div>
+        </div>
+
+        {recoverySource === 'garmin' && (
+          <>
+            <SectionGroup
+              label=""
+              tabs={[
+                { key: 'sleep' as GarminRecoveryTab, label: 'Sleep & Recovery' },
+                { key: 'stress' as GarminRecoveryTab, label: 'Stress' },
+                { key: 'trends' as GarminRecoveryTab, label: 'Trends' },
+              ]}
+              active={garminTab}
+              onChange={setGarminTab}
+            />
+            {garminTab === 'sleep' && (
+              <FitnessSleep sleep={sleepRecords} recovery={recoveryRecords} activities={filtered} unit={unit} />
+            )}
+            {garminTab === 'stress' && (
+              <SectionCard
+                title="Stress Heatmap"
+                description="Daily avg stress · year to date"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+              >
+                <FitnessStressHeatmap records={stressRecords} />
+              </SectionCard>
+            )}
+            {garminTab === 'trends' && (
+              <SectionCard
+                title="Recovery Trends"
+                description="7-day rolling averages · sleep, stress, HRV"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>}
+              >
+                <FitnessTrends sleep={sleepRecords} recovery={recoveryRecords} />
+              </SectionCard>
+            )}
+          </>
         )}
-        {recoveryTab === 'stress' && (
-          <SectionCard
-            title="Stress Heatmap"
-            description="Daily avg stress · year to date"
-            symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
-          >
-            <FitnessStressHeatmap records={stressRecords} />
-          </SectionCard>
-        )}
-        {recoveryTab === 'trends' && (
-          <SectionCard
-            title="Recovery Trends"
-            description="7-day rolling averages · sleep, stress, HRV"
-            symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>}
-          >
-            <FitnessTrends sleep={sleepRecords} recovery={recoveryRecords} />
-          </SectionCard>
+
+        {recoverySource === 'whoop' && (
+          <>
+            <SectionGroup
+              label=""
+              tabs={[
+                { key: 'recovery' as WhoopRecoveryTab, label: 'Recovery' },
+                { key: 'sleep' as WhoopRecoveryTab, label: 'Sleep' },
+                { key: 'strain' as WhoopRecoveryTab, label: 'Strain' },
+                { key: 'trends' as WhoopRecoveryTab, label: 'Trends' },
+              ]}
+              active={whoopTab}
+              onChange={setWhoopTab}
+            />
+            {whoopTab === 'recovery' && (
+              <SectionCard
+                title="WHOOP Recovery"
+                description="Daily recovery score, HRV, resting HR"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+              >
+                <WhoopRecoveryView recovery={whoopRecovery} cycles={whoopCycles} />
+              </SectionCard>
+            )}
+            {whoopTab === 'sleep' && (
+              <SectionCard
+                title="WHOOP Sleep"
+                description="Performance, stages, and respiratory rate"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M2 12a10 10 0 1 0 10-10 8 8 0 0 1-10 10z" /></svg>}
+              >
+                <WhoopSleepView sleep={whoopSleep} />
+              </SectionCard>
+            )}
+            {whoopTab === 'strain' && (
+              <SectionCard
+                title="WHOOP Strain"
+                description="Daily strain, energy, and heart rate"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+              >
+                <WhoopStrainView cycles={whoopCycles} recovery={whoopRecovery} />
+              </SectionCard>
+            )}
+            {whoopTab === 'trends' && (
+              <SectionCard
+                title="WHOOP Trends"
+                description="7-day rolling averages · recovery, sleep, strain"
+                symbol={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>}
+              >
+                <WhoopTrendsView recovery={whoopRecovery} sleep={whoopSleep} cycles={whoopCycles} />
+              </SectionCard>
+            )}
+          </>
         )}
       </div>
 

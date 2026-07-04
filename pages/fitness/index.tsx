@@ -33,9 +33,43 @@ export interface FitnessRecoveryRecord {
   recovery_time_hours: number | null;
 }
 
+export interface FitnessWhoopRecovery {
+  cycle_id: string;
+  date: string;
+  recovery_score: number | null;
+  resting_heart_rate: number | null;
+  hrv_rmssd_milli: number | null;
+  spo2_percentage: number | null;
+  skin_temp_celsius: number | null;
+}
+
+export interface FitnessWhoopSleep {
+  sleep_id: string;
+  date: string;
+  nap: boolean | null;
+  sleep_performance_percentage: number | null;
+  sleep_efficiency_percentage: number | null;
+  sleep_consistency_percentage: number | null;
+  respiratory_rate: number | null;
+  in_bed_minutes: number | null;
+  awake_minutes: number | null;
+  rem_minutes: number | null;
+  slow_wave_minutes: number | null;
+  light_minutes: number | null;
+}
+
+export interface FitnessWhoopCycle {
+  cycle_id: string;
+  date: string;
+  strain: number | null;
+  kilojoules: number | null;
+  avg_heart_rate: number | null;
+  max_heart_rate: number | null;
+}
+
 export interface FitnessActivity {
   id: string;
-  source: 'strava' | 'garmin';
+  source: 'strava' | 'garmin' | 'whoop';
   name: string | null;
   sport_type: string | null;
   start_time: string;
@@ -59,7 +93,7 @@ const FitnessPage: NextPage = () => {
             Fitness
           </h1>
           <p className="mt-2 text-gray-11">
-            Training data synced from Strava and Garmin.
+            Training data synced from Strava, Garmin, and WHOOP.
           </p>
         </div>
         <FitnessDashboard />
