@@ -90,6 +90,18 @@ export const METRICS: Record<MetricKey, MetricDefinition> = {
     hint: 'Average running pace on run days — lower is faster',
   },
 
+  // ── Zone discipline ───────────────────────────────────────────────────────
+  aerobicPct: {
+    key: 'aerobicPct', label: 'Aerobic %', short: 'Aerobic', source: 'garmin', category: 'load',
+    direction: 'higherBetter', unit: '%', color: '#34d399',
+    hint: '% of session time in easy zones 1–2 (aerobic base)',
+  },
+  greyZonePct: {
+    key: 'greyZonePct', label: 'Grey-Zone %', short: 'Grey zone', source: 'garmin', category: 'load',
+    direction: 'lowerBetter', unit: '%', color: '#fbbf24',
+    hint: '% of session time in zone 3 — the "junk-mile" grey zone',
+  },
+
   // ── Derived composites ────────────────────────────────────────────────────
   athleteScore: {
     key: 'athleteScore', label: 'Athlete Score', short: 'Athlete', source: 'derived', category: 'composite',

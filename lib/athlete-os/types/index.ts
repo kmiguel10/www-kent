@@ -29,6 +29,9 @@ export type MetricKey =
   | 'mileage'
   // Performance
   | 'runPace'
+  // Zone discipline
+  | 'aerobicPct'
+  | 'greyZonePct'
   // Derived composites
   | 'athleteScore'
   | 'marathonReadiness';

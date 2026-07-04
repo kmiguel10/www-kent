@@ -80,10 +80,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       set('strain', wc.date, wc.strain);
     }
 
-    // Activities → daily mileage, run pace, and the training-load proxy.
+    // Activities → daily mileage, run pace, training-load proxy, and zone split.
     const loadInputs: ActivityLoadInput[] = [];
     const mileageByDay = new Map<string, number>();
     const paceAgg = new Map<string, { sum: number; n: number }>();
+    // Daily easy(Z1-2) / grey(Z3) / hard(Z4-5) seconds from Garmin time-in-zone.
+    const zoneByDay = new Map<string, { easy: number; grey: number; hard: number }>();
     for (const a of activitiesRes.data ?? []) {
       if (!a.start_time) continue;
       const day = localDay(a.start_time);
@@ -96,7 +98,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         agg.sum += a.avg_pace_seconds_per_km; agg.n += 1;
         paceAgg.set(day, agg);
       }
-      const suffer = (a.raw_data && (a.raw_data.suffer_score ?? a.raw_data.sufferScore)) ?? null;
+      const rd = a.raw_data ?? {};
+      const z = [1, 2, 3, 4, 5].map((i) => Number(rd[`hrTimeInZone_${i}`]) || 0);
+      if (z.reduce((s, v) => s + v, 0) > 0) {
+        const agg = zoneByDay.get(day) ?? { easy: 0, grey: 0, hard: 0 };
+        agg.easy += z[0] + z[1];
+        agg.grey += z[2];
+        agg.hard += z[3] + z[4];
+        zoneByDay.set(day, agg);
+      }
+      const suffer = (rd.suffer_score ?? rd.sufferScore) ?? null;
       loadInputs.push({
         date: day,
         sufferScore: typeof suffer === 'number' ? suffer : null,
@@ -105,6 +116,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         maxHeartRate: a.max_heart_rate ?? null,
       });
     }
+    zoneByDay.forEach((v, d) => {
+      const total = v.easy + v.grey + v.hard;
+      if (total > 0) {
+        set('aerobicPct', d, (v.easy / total) * 100);
+        set('greyZonePct', d, (v.grey / total) * 100);
+      }
+    });
     mileageByDay.forEach((v, d) => set('mileage', d, v));
     paceAgg.forEach((v, d) => set('runPace', d, v.sum / v.n));
     dailyTrainingLoad(loadInputs).forEach((v, d) => set('trainingLoad', d, v));

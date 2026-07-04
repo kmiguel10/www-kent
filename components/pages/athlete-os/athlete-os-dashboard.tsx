@@ -6,10 +6,13 @@ import { WINDOW_OPTIONS } from '@/lib/athlete-os/types';
 import { discoverRelationships, buildGraph } from '@/lib/athlete-os/services/correlation/relationshipDiscovery';
 import { generateInsights } from '@/lib/athlete-os/services/correlation/insightGeneration';
 
+import type { ZoneSession } from '@/lib/athlete-os/services/zones/zoneAnalysis';
+
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
 import RelationshipGraph from './relationship-graph';
+import ZoneDiscipline from './zone-discipline';
 
 /**
  * Athlete OS dashboard — orchestrates data fetch, runs the correlation engine
@@ -46,13 +49,16 @@ function Skeleton() {
 
 export default function AthleteOsDashboard() {
   const [data, setData] = useState<AthleteOsPayload | null>(null);
+  const [zones, setZones] = useState<{ sessions: ZoneSession[]; observedMaxHr: number | null }>({ sessions: [], observedMaxHr: null });
   const [loading, setLoading] = useState(true);
   const [graphWindow, setGraphWindow] = useState<RollingWindow>(90);
 
   useEffect(() => {
-    fetch('/api/athlete-os/metrics')
-      .then((r) => r.json())
-      .then((d: AthleteOsPayload) => { setData(d); setLoading(false); })
+    Promise.all([
+      fetch('/api/athlete-os/metrics').then((r) => r.json()),
+      fetch('/api/athlete-os/zones').then((r) => r.json()),
+    ])
+      .then(([d, z]) => { setData(d as AthleteOsPayload); setZones(z); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -88,6 +94,11 @@ export default function AthleteOsDashboard() {
       {/* Insights */}
       <Panel title="Insights" subtitle="Generated from your correlation patterns">
         <InsightFeed insights={insights} />
+      </Panel>
+
+      {/* Zone discipline */}
+      <Panel title="Zone Discipline" subtitle="Are your easy days actually easy? Polarized-training balance vs the 80/20 ideal">
+        <ZoneDiscipline sessions={zones.sessions} observedMaxHr={zones.observedMaxHr} />
       </Panel>
 
       {/* Correlation Explorer */}
