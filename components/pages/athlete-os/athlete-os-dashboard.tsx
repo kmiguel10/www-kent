@@ -9,7 +9,10 @@ import { generateInsights } from '@/lib/athlete-os/services/correlation/insightG
 import type { ZoneSession } from '@/lib/athlete-os/services/zones/zoneAnalysis';
 import { type RideSummary, estimateFtp } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
 import type { RunSummary } from '@/lib/athlete-os/services/aerobic/runningAnalysis';
+import type { MarathonPayload } from '@/pages/api/athlete-os/marathon';
+import { buildGoalModel } from '@/lib/athlete-os/services/marathon/marathonGoal';
 
+import MarathonGoal from './marathon-goal';
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
@@ -17,6 +20,8 @@ import RelationshipGraph from './relationship-graph';
 import ZoneDiscipline from './zone-discipline';
 import AerobicEngine from './aerobic-engine';
 import WeightLog from './weight-log';
+
+const EMPTY_MARATHON: MarathonPayload = { prs: [], predictionTrend: [], weeklyMileage: [], longestRunKm: 0, recentWeeklyAvgKm: 0, latestPredictionFrom: null };
 
 /**
  * Athlete OS dashboard — orchestrates data fetch, runs the correlation engine
@@ -56,6 +61,7 @@ export default function AthleteOsDashboard() {
   const [zones, setZones] = useState<{ sessions: ZoneSession[]; observedMaxHr: number | null }>({ sessions: [], observedMaxHr: null });
   const [rides, setRides] = useState<RideSummary[]>([]);
   const [runs, setRuns] = useState<RunSummary[]>([]);
+  const [marathon, setMarathon] = useState<MarathonPayload>(EMPTY_MARATHON);
   const [loading, setLoading] = useState(true);
   const [graphWindow, setGraphWindow] = useState<RollingWindow>(90);
 
@@ -65,12 +71,30 @@ export default function AthleteOsDashboard() {
       fetch('/api/athlete-os/zones').then((r) => r.json()),
       fetch('/api/athlete-os/cycling').then((r) => r.json()),
       fetch('/api/athlete-os/running').then((r) => r.json()),
+      fetch('/api/athlete-os/marathon').then((r) => r.json()),
     ])
-      .then(([d, z, c, rn]) => { setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []); setLoading(false); })
+      .then(([d, z, c, rn, mar]) => {
+        setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []);
+        setMarathon(mar as MarathonPayload); setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
   const ftp = useMemo(() => estimateFtp(rides).ftp, [rides]);
+
+  // Running-specific aerobic (easy Zone 1–2) share, for the marathon base lever.
+  const runningAerobicPct = useMemo(() => {
+    const runSessions = zones.sessions.filter((s) => s.sport === 'run');
+    let easy = 0, total = 0;
+    for (const s of runSessions) {
+      const t = s.zoneSecs.reduce((a, b) => a + b, 0);
+      easy += (s.zoneSecs[0] ?? 0) + (s.zoneSecs[1] ?? 0);
+      total += t;
+    }
+    return total > 0 ? (easy / total) * 100 : null;
+  }, [zones.sessions]);
+
+  const goalModel = useMemo(() => buildGoalModel(marathon, runningAerobicPct), [marathon, runningAerobicPct]);
 
   const correlations = useMemo(
     () => (data ? discoverRelationships(data.matrix, { window: graphWindow, minStrength: 0.25, minConfidence: 'low' }) : []),
@@ -96,6 +120,11 @@ export default function AthleteOsDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Marathon goal — the north star */}
+      <Panel title="Marathon Goal" subtitle="Your live tracker toward sub-4 on Jan 31, 2027">
+        <MarathonGoal model={goalModel} />
+      </Panel>
+
       {/* Orb — today */}
       <Panel title="Today" subtitle={data!.today ? `Athlete Score · ${data!.today.date}` : 'No score for today'}>
         <AthleteOrb today={data!.today} />
