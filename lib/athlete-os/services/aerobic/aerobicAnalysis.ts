@@ -227,3 +227,95 @@ export function generateRecommendations(zones: CyclingZones, ef: ReturnType<type
 
 /** Streams aren't stored yet, so intra-ride decoupling/drift is unavailable. */
 export const decouplingAvailable = false;
+
+// ── Sport-agnostic view model ───────────────────────────────────────────────
+// Cycling and running produce the same shape so one component renders both.
+
+export interface AuditModelRow {
+  date: string; name: string; intended: 'easy' | 'other';
+  avgHr: number | null; maxHr: number | null; intensity: string;
+  easyPct: number; abovePct: number; actualZone: string; flagged: boolean;
+}
+
+export interface AerobicModel {
+  sport: 'cycling' | 'running';
+  anchorLabel: string;   // 'Est. FTP' | 'Threshold pace'
+  anchorValue: string;   // '140 W' | '4:32 /km'
+  anchorSub: string;
+  z2HrText: string;      // '133–143 bpm'
+  z2IntensityText: string; // '77–105 W' | '5:10–4:41 /km'
+  thresholdHr: number | null;
+  confidence: Confidence;
+  sampleN: number;
+  // scatter (x = intensity, higher = harder: watts / speed m·s⁻¹)
+  xLabel: string;
+  scatter: { x: number; y: number }[];
+  fit: { a: number; b: number };
+  fitLabel: string;
+  z2BandX: [number, number] | null;
+  z2CeilingHr: number | null;
+  formatX: (x: number) => string; // tooltip formatter for scatter x
+  // zones
+  zoneRows: { zone: string; hr: string; intensity: string }[];
+  // trends
+  efChangePct: number;
+  efPts: { date: string; v: number }[];
+  secondTrend: { label: string; unit?: string; pts: { date: string; v: number }[] };
+  // audit + recs
+  auditTitle: string;
+  auditIntensityLabel: string;
+  audit: AuditModelRow[];
+  recs: Recommendation[];
+}
+
+export function formatPace(secPerKm: number): string {
+  if (!Number.isFinite(secPerKm) || secPerKm <= 0) return '—';
+  const m = Math.floor(secPerKm / 60);
+  const s = Math.round(secPerKm % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+const fmtRange = (lo: number | null, hi: number | null, unit: string) =>
+  lo == null ? `< ${hi} ${unit}` : hi == null ? `${lo}+ ${unit}` : `${lo}–${hi} ${unit}`;
+
+export function buildCyclingModel(rides: RideSummary[]): AerobicModel | null {
+  const zones = deriveCyclingZones(rides);
+  if (!zones.ftp || !zones.fit) return null;
+  const ef = efSeries(rides);
+  const ftpT = ftpTrend(rides);
+  const audit = zwiftAudit(rides);
+  const io = indoorVsOutdoor(rides);
+  const recs = generateRecommendations(zones, ef, audit, io);
+  const z2 = zones.rows.find((r) => r.zone.startsWith('Z2'))!;
+
+  return {
+    sport: 'cycling',
+    anchorLabel: 'Est. FTP',
+    anchorValue: `${zones.ftp} W`,
+    anchorSub: `best 20-min ${zones.best20}W`,
+    z2HrText: `${z2.hrLow}–${z2.hrHigh} bpm`,
+    z2IntensityText: `${z2.powerLow}–${z2.powerHigh} W`,
+    thresholdHr: zones.thresholdHr,
+    confidence: zones.confidence,
+    sampleN: zones.fit.n,
+    xLabel: 'Normalized Power (W)',
+    scatter: ef.pts.map((p) => ({ x: p.np, y: p.hr })),
+    fit: { a: zones.fit.a, b: zones.fit.b },
+    fitLabel: `HR ≈ ${Math.round(zones.fit.a)} + ${zones.fit.b.toFixed(2)}·W`,
+    z2BandX: z2.powerLow != null && z2.powerHigh != null ? [z2.powerLow, z2.powerHigh] : null,
+    z2CeilingHr: z2.hrHigh,
+    formatX: (x) => `${Math.round(x)} W`,
+    zoneRows: zones.rows.map((r) => ({ zone: r.zone, hr: fmtRange(r.hrLow, r.hrHigh, 'bpm'), intensity: fmtRange(r.powerLow, r.powerHigh, 'W') })),
+    efChangePct: ef.changePct,
+    efPts: ef.pts.map((p) => ({ date: p.date, v: +p.ef.toFixed(3) })),
+    secondTrend: { label: 'FTP proxy (best 20-min × 0.95)', unit: 'W', pts: ftpT.map((p) => ({ date: p.date, v: p.w })) },
+    auditTitle: 'Zwift audit · is your "easy" actually easy?',
+    auditIntensityLabel: 'NP',
+    audit: audit.map((a) => ({
+      date: a.date, name: a.name.replace(/^Zwift - /, ''), intended: a.intended,
+      avgHr: a.avgHr, maxHr: a.maxHr, intensity: a.normPower != null ? `${a.normPower} W` : '—',
+      easyPct: a.easyPct, abovePct: a.abovePct, actualZone: a.actualZone, flagged: a.flagged,
+    })),
+    recs,
+  };
+}

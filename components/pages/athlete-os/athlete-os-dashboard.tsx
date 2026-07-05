@@ -8,13 +8,14 @@ import { generateInsights } from '@/lib/athlete-os/services/correlation/insightG
 
 import type { ZoneSession } from '@/lib/athlete-os/services/zones/zoneAnalysis';
 import { type RideSummary, estimateFtp } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
+import type { RunSummary } from '@/lib/athlete-os/services/aerobic/runningAnalysis';
 
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
 import RelationshipGraph from './relationship-graph';
 import ZoneDiscipline from './zone-discipline';
-import AerobicZone2 from './aerobic-zone2';
+import AerobicEngine from './aerobic-engine';
 import WeightLog from './weight-log';
 
 /**
@@ -54,6 +55,7 @@ export default function AthleteOsDashboard() {
   const [data, setData] = useState<AthleteOsPayload | null>(null);
   const [zones, setZones] = useState<{ sessions: ZoneSession[]; observedMaxHr: number | null }>({ sessions: [], observedMaxHr: null });
   const [rides, setRides] = useState<RideSummary[]>([]);
+  const [runs, setRuns] = useState<RunSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [graphWindow, setGraphWindow] = useState<RollingWindow>(90);
 
@@ -62,8 +64,9 @@ export default function AthleteOsDashboard() {
       fetch('/api/athlete-os/metrics').then((r) => r.json()),
       fetch('/api/athlete-os/zones').then((r) => r.json()),
       fetch('/api/athlete-os/cycling').then((r) => r.json()),
+      fetch('/api/athlete-os/running').then((r) => r.json()),
     ])
-      .then(([d, z, c]) => { setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setLoading(false); })
+      .then(([d, z, c, rn]) => { setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -108,9 +111,9 @@ export default function AthleteOsDashboard() {
         <ZoneDiscipline sessions={zones.sessions} observedMaxHr={zones.observedMaxHr} />
       </Panel>
 
-      {/* Aerobic / cycling Zone 2 */}
-      <Panel title="Aerobic Engine · Cycling Zone 2" subtitle="Your true Zone 2 derived from HR–power history, not formulas">
-        <AerobicZone2 rides={rides} />
+      {/* Aerobic Zone 2 — cycling + running */}
+      <Panel title="Aerobic Engine · Zone 2" subtitle="Your true Zone 2 derived from HR–intensity history, not formulas — cycling and running">
+        <AerobicEngine rides={rides} runs={runs} />
       </Panel>
 
       {/* Weight / body composition */}
