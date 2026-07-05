@@ -7,12 +7,15 @@ import { discoverRelationships, buildGraph } from '@/lib/athlete-os/services/cor
 import { generateInsights } from '@/lib/athlete-os/services/correlation/insightGeneration';
 
 import type { ZoneSession } from '@/lib/athlete-os/services/zones/zoneAnalysis';
+import { type RideSummary, estimateFtp } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
 
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
 import RelationshipGraph from './relationship-graph';
 import ZoneDiscipline from './zone-discipline';
+import AerobicZone2 from './aerobic-zone2';
+import WeightLog from './weight-log';
 
 /**
  * Athlete OS dashboard — orchestrates data fetch, runs the correlation engine
@@ -50,6 +53,7 @@ function Skeleton() {
 export default function AthleteOsDashboard() {
   const [data, setData] = useState<AthleteOsPayload | null>(null);
   const [zones, setZones] = useState<{ sessions: ZoneSession[]; observedMaxHr: number | null }>({ sessions: [], observedMaxHr: null });
+  const [rides, setRides] = useState<RideSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [graphWindow, setGraphWindow] = useState<RollingWindow>(90);
 
@@ -57,10 +61,13 @@ export default function AthleteOsDashboard() {
     Promise.all([
       fetch('/api/athlete-os/metrics').then((r) => r.json()),
       fetch('/api/athlete-os/zones').then((r) => r.json()),
+      fetch('/api/athlete-os/cycling').then((r) => r.json()),
     ])
-      .then(([d, z]) => { setData(d as AthleteOsPayload); setZones(z); setLoading(false); })
+      .then(([d, z, c]) => { setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const ftp = useMemo(() => estimateFtp(rides).ftp, [rides]);
 
   const correlations = useMemo(
     () => (data ? discoverRelationships(data.matrix, { window: graphWindow, minStrength: 0.25, minConfidence: 'low' }) : []),
@@ -99,6 +106,16 @@ export default function AthleteOsDashboard() {
       {/* Zone discipline */}
       <Panel title="Zone Discipline" subtitle="Are your easy days actually easy? Polarized-training balance vs the 80/20 ideal">
         <ZoneDiscipline sessions={zones.sessions} observedMaxHr={zones.observedMaxHr} />
+      </Panel>
+
+      {/* Aerobic / cycling Zone 2 */}
+      <Panel title="Aerobic Engine · Cycling Zone 2" subtitle="Your true Zone 2 derived from HR–power history, not formulas">
+        <AerobicZone2 rides={rides} />
+      </Panel>
+
+      {/* Weight / body composition */}
+      <Panel title="Body Composition" subtitle="Manual weight log · goal 165–170 lb · power-to-weight">
+        <WeightLog ftp={ftp} />
       </Panel>
 
       {/* Correlation Explorer */}
