@@ -11,8 +11,10 @@ import { type RideSummary, estimateFtp } from '@/lib/athlete-os/services/aerobic
 import type { RunSummary } from '@/lib/athlete-os/services/aerobic/runningAnalysis';
 import type { MarathonPayload } from '@/pages/api/athlete-os/marathon';
 import { buildGoalModel } from '@/lib/athlete-os/services/marathon/marathonGoal';
+import { buildRoadmap } from '@/lib/athlete-os/services/marathon/roadmap';
 
 import MarathonGoal from './marathon-goal';
+import MarathonRoadmap from './marathon-roadmap';
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
@@ -95,6 +97,12 @@ export default function AthleteOsDashboard() {
   }, [zones.sessions]);
 
   const goalModel = useMemo(() => buildGoalModel(marathon, runningAerobicPct), [marathon, runningAerobicPct]);
+  const roadmap = useMemo(() => buildRoadmap({
+    predictedSec: goalModel.predictedSeconds,
+    volumeKm: marathon.recentWeeklyAvgKm,
+    longestKm: marathon.longestRunKm,
+    aerobicPct: runningAerobicPct,
+  }), [goalModel.predictedSeconds, marathon.recentWeeklyAvgKm, marathon.longestRunKm, runningAerobicPct]);
 
   const correlations = useMemo(
     () => (data ? discoverRelationships(data.matrix, { window: graphWindow, minStrength: 0.25, minConfidence: 'low' }) : []),
@@ -123,6 +131,11 @@ export default function AthleteOsDashboard() {
       {/* Marathon goal — the north star */}
       <Panel title="Marathon Goal" subtitle="Your live tracker toward sub-4 on Jan 31, 2027">
         <MarathonGoal model={goalModel} />
+      </Panel>
+
+      {/* Roadmap — the glide path + checkpoints */}
+      <Panel title="Road to Sub-4" subtitle="Target stats at each checkpoint from now to race day">
+        <MarathonRoadmap roadmap={roadmap} />
       </Panel>
 
       {/* Orb — today */}
