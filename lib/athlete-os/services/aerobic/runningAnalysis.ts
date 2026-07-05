@@ -86,17 +86,18 @@ export function buildRunningModel(runs: RunSummary[]): AerobicModel | null {
   const z2SpeedLo = z2[1] * thrSpeed, z2SpeedHi = z2[2] * thrSpeed;
   const z2HrLow = hrAt(z2SpeedLo), z2HrHigh = hrAt(z2SpeedHi);
 
-  // Efficiency (speed/HR) trend.
-  const efPts = withHrPace.map((r) => ({ date: r.date, ef: speedOf(r)! / r.avgHr! }));
+  // Efficiency as METRES PER BEAT (runner-native, ~1.0–1.4) = speed·60 / HR.
+  const efPts = withHrPace.map((r) => ({ date: r.date, ef: (speedOf(r)! * 60) / r.avgHr! }));
   const third = Math.floor(efPts.length / 3) || 1;
   const early = mean(efPts.slice(0, third).map((p) => p.ef));
   const recent = mean(efPts.slice(-third).map((p) => p.ef));
   const efChangePct = early > 0 ? (recent / early - 1) * 100 : 0;
 
-  // Second trend: sustained speed (fitness proxy, higher = fitter).
+  // Second trend: sustained PACE (min/km) on 20–75 min efforts. Rendered on a
+  // reversed axis so faster (lower pace) reads as "up = fitter".
   const sustained = withHrPace
     .filter((r) => r.durationSeconds >= 1200 && r.durationSeconds <= 4500)
-    .map((r) => ({ date: r.date, v: +(speedOf(r)!.toFixed(2)) }));
+    .map((r) => ({ date: r.date, v: Math.round(r.paceSecPerKm!) }));
 
   // Easy-run audit.
   const audit = withHrPace
@@ -142,7 +143,7 @@ export function buildRunningModel(runs: RunSummary[]): AerobicModel | null {
     recs.push({
       severity: efChangePct >= 0 ? 'good' : 'info',
       title: `Aerobic efficiency ${efChangePct >= 0 ? 'improved' : 'declined'} ${Math.abs(Math.round(efChangePct))}%`,
-      detail: `Speed per heartbeat moved ${early.toFixed(4)} → ${recent.toFixed(4)} m·s⁻¹/bpm across your history.`,
+      detail: `You cover ${early.toFixed(2)} → ${recent.toFixed(2)} metres per heartbeat across your history — more distance per beat means a stronger aerobic engine.`,
     });
   }
   if (hrGap != null && hrGap >= 4) {
@@ -161,19 +162,22 @@ export function buildRunningModel(runs: RunSummary[]): AerobicModel | null {
     z2HrText: `${z2HrLow}–${z2HrHigh} bpm`,
     z2IntensityText: `${formatPace(1000 / z2SpeedHi)}–${formatPace(1000 / z2SpeedLo)} /km`,
     thresholdHr: hrAt(thrSpeed),
+    thresholdHrSub: 'at threshold pace',
     confidence,
     sampleN: fit.n,
-    xLabel: 'Speed (m/s)',
+    xLabel: 'Pace /km · faster →',
     scatter: withHrPace.map((r) => ({ x: speedOf(r)!, y: r.avgHr! })),
     fit: { a: fit.a, b: fit.b },
     fitLabel: `HR ≈ ${Math.round(fit.a)} + ${fit.b.toFixed(1)}·(m/s)`,
     z2BandX: [z2SpeedLo, z2SpeedHi],
     z2CeilingHr: z2HrHigh,
     formatX: (x) => `${formatPace(1000 / x)}/km`,
+    xTickFormat: (x) => (x > 0 ? formatPace(1000 / x) : '—'),
     zoneRows,
+    efLabel: 'Aerobic efficiency (m/beat)',
     efChangePct,
-    efPts: efPts.map((p) => ({ date: p.date, v: +p.ef.toFixed(4) })),
-    secondTrend: { label: 'Sustained speed (m/s)', unit: '', pts: sustained },
+    efPts: efPts.map((p) => ({ date: p.date, v: +p.ef.toFixed(2) })),
+    secondTrend: { label: 'Sustained pace (min/km · faster ↑)', unit: '', pts: sustained, reversed: true, format: (v) => formatPace(v) },
     auditTitle: 'Easy-run audit · is your "easy" actually easy?',
     auditIntensityLabel: 'Pace',
     audit,

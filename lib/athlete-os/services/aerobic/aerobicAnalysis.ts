@@ -248,19 +248,22 @@ export interface AerobicModel {
   confidence: Confidence;
   sampleN: number;
   // scatter (x = intensity, higher = harder: watts / speed m·s⁻¹)
+  thresholdHrSub: string; // 'at FTP' | 'at threshold pace'
   xLabel: string;
   scatter: { x: number; y: number }[];
   fit: { a: number; b: number };
   fitLabel: string;
   z2BandX: [number, number] | null;
   z2CeilingHr: number | null;
-  formatX: (x: number) => string; // tooltip formatter for scatter x
+  formatX: (x: number) => string;      // tooltip formatter for scatter x
+  xTickFormat: (x: number) => string;  // axis tick formatter for scatter x
   // zones
   zoneRows: { zone: string; hr: string; intensity: string }[];
   // trends
+  efLabel: string;
   efChangePct: number;
   efPts: { date: string; v: number }[];
-  secondTrend: { label: string; unit?: string; pts: { date: string; v: number }[] };
+  secondTrend: { label: string; unit?: string; pts: { date: string; v: number }[]; reversed?: boolean; format?: (v: number) => string };
   // audit + recs
   auditTitle: string;
   auditIntensityLabel: string;
@@ -296,6 +299,7 @@ export function buildCyclingModel(rides: RideSummary[]): AerobicModel | null {
     z2HrText: `${z2.hrLow}–${z2.hrHigh} bpm`,
     z2IntensityText: `${z2.powerLow}–${z2.powerHigh} W`,
     thresholdHr: zones.thresholdHr,
+    thresholdHrSub: 'at FTP',
     confidence: zones.confidence,
     sampleN: zones.fit.n,
     xLabel: 'Normalized Power (W)',
@@ -305,7 +309,9 @@ export function buildCyclingModel(rides: RideSummary[]): AerobicModel | null {
     z2BandX: z2.powerLow != null && z2.powerHigh != null ? [z2.powerLow, z2.powerHigh] : null,
     z2CeilingHr: z2.hrHigh,
     formatX: (x) => `${Math.round(x)} W`,
+    xTickFormat: (x) => `${Math.round(x)}`,
     zoneRows: zones.rows.map((r) => ({ zone: r.zone, hr: fmtRange(r.hrLow, r.hrHigh, 'bpm'), intensity: fmtRange(r.powerLow, r.powerHigh, 'W') })),
+    efLabel: 'Aerobic efficiency (NP/HR)',
     efChangePct: ef.changePct,
     efPts: ef.pts.map((p) => ({ date: p.date, v: +p.ef.toFixed(3) })),
     secondTrend: { label: 'FTP proxy (best 20-min × 0.95)', unit: 'W', pts: ftpT.map((p) => ({ date: p.date, v: p.w })) },

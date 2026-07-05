@@ -30,7 +30,6 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
   const padY = (maxY - minY) * 0.08 || 1;
   const xDomain: [number, number] = [minX - padX, maxX + padX];
   const yDomain: [number, number] = [minY - padY, maxY + padY];
-  const xDigits = maxX < 20 ? 1 : 0; // speed needs a decimal; power doesn't
   const line = [
     { x: minX, y: model.fit.a + model.fit.b * minX },
     { x: maxX, y: model.fit.a + model.fit.b * maxX },
@@ -44,7 +43,7 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
         <Divider />
         <Stat label="True Zone 2" value={model.z2HrText} sub={model.z2IntensityText} color="#34d399" />
         <Divider />
-        <Stat label="Threshold HR" value={model.thresholdHr ? `${model.thresholdHr} bpm` : '—'} sub="at anchor" />
+        <Stat label="Threshold HR" value={model.thresholdHr ? `${model.thresholdHr} bpm` : '—'} sub={model.thresholdHrSub} />
         <Divider />
         <Stat label="Confidence" value={model.confidence} sub={`${model.sampleN} sessions`} color={CONF_COLOR[model.confidence]} />
       </div>
@@ -74,8 +73,8 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
           <ScatterChart margin={{ top: 8, right: 16, bottom: 20, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-5)" />
             {model.z2BandX && <ReferenceArea x1={model.z2BandX[0]} x2={model.z2BandX[1]} fill="#34d399" fillOpacity={0.12} />}
-            <XAxis type="number" dataKey="x" name="intensity" domain={xDomain} allowDecimals={xDigits > 0}
-              tickFormatter={(v) => Number(v).toFixed(xDigits)}
+            <XAxis type="number" dataKey="x" name="intensity" domain={xDomain} allowDecimals={model.sport === 'running'}
+              tickFormatter={(v) => model.xTickFormat(Number(v))}
               tick={{ fontSize: 11, fill: 'var(--gray-11)' }} tickLine={false} axisLine={{ stroke: 'var(--gray-6)' }}
               label={{ value: model.xLabel, position: 'bottom', fill: 'var(--gray-10)', fontSize: 11 }} />
             <YAxis type="number" dataKey="y" name="HR" domain={yDomain} width={40} allowDecimals={false}
@@ -119,8 +118,9 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
 
       {/* Trends */}
       <div className="grid gap-4 md:grid-cols-2">
-        <TrendCard title={`Aerobic efficiency (${model.sport === 'cycling' ? 'NP/HR' : 'speed/HR'})`} delta={model.efChangePct} data={model.efPts} color="#34d399" />
-        <TrendCard title={model.secondTrend.label} delta={null} data={model.secondTrend.pts} color="#a855f7" unit={model.secondTrend.unit} />
+        <TrendCard title={model.efLabel} delta={model.efChangePct} data={model.efPts} color="#34d399" />
+        <TrendCard title={model.secondTrend.label} delta={null} data={model.secondTrend.pts} color="#a855f7"
+          unit={model.secondTrend.unit} reversed={model.secondTrend.reversed} format={model.secondTrend.format} />
       </div>
 
       {/* Audit */}
@@ -165,7 +165,8 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
   );
 }
 
-function TrendCard({ title, delta, data, color, unit }: { title: string; delta: number | null; data: { date: string; v: number }[]; color: string; unit?: string }) {
+function TrendCard({ title, delta, data, color, unit, reversed, format }: { title: string; delta: number | null; data: { date: string; v: number }[]; color: string; unit?: string; reversed?: boolean; format?: (v: number) => string }) {
+  const fmt = (v: number) => (format ? format(v) : `${v}${unit ?? ''}`);
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-gray-6 bg-gray-2 p-3">
       <div className="flex items-center justify-between">
@@ -177,10 +178,11 @@ function TrendCard({ title, delta, data, color, unit }: { title: string; delta: 
         )}
       </div>
       <ResponsiveContainer width="100%" height={110}>
-        <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: -24 }}>
-          <YAxis domain={['dataMin', 'dataMax']} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} width={36} unit={unit} />
+        <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 0 }}>
+          <YAxis domain={['dataMin', 'dataMax']} reversed={reversed} tickFormatter={format ? (v) => format(Number(v)) : undefined}
+            tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} width={format ? 48 : 40} unit={format ? undefined : unit} />
           <XAxis dataKey="date" hide />
-          <Tooltip content={({ active, payload }) => active && payload?.length ? <div className="rounded border border-gray-6 bg-gray-2 px-2 py-1 text-xs text-gray-12">{(payload[0].payload as { date: string }).date}: {payload[0].value}{unit ?? ''}</div> : null} />
+          <Tooltip content={({ active, payload }) => active && payload?.length ? <div className="rounded border border-gray-6 bg-gray-2 px-2 py-1 text-xs text-gray-12">{(payload[0].payload as { date: string }).date}: {fmt(Number(payload[0].value))}</div> : null} />
           <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
