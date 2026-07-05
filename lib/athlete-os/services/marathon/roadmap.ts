@@ -86,8 +86,9 @@ export function buildRoadmap(current: RoadmapCurrent): Roadmap {
   const checkpoints: Checkpoint[] = [];
   for (let m = maxM; m >= 0; m--) {
     const wtr = m * 4.345;
-    const d = new Date(race);
-    d.setUTCMonth(d.getUTCMonth() - m);
+    // Use day 1 of the target month so Jan-31 − N months doesn't roll over
+    // (e.g. "2 months before Jan 31" is November, not December).
+    const d = new Date(Date.UTC(race.getUTCFullYear(), race.getUTCMonth() - m, 1));
     checkpoints.push({
       monthsOut: m,
       date: d.toISOString().slice(0, 10),
