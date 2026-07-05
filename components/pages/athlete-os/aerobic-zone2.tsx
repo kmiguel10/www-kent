@@ -5,7 +5,7 @@ import {
 import { AlertTriangle, TrendingUp, Info, Check } from 'lucide-react';
 
 import type { AerobicModel } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
-import { decouplingAvailable } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
+import type { DecouplingSummary } from '@/lib/athlete-os/services/aerobic/decouplingAnalysis';
 
 /**
  * AerobicView — renders a sport-agnostic AerobicModel (cycling or running).
@@ -15,7 +15,7 @@ import { decouplingAvailable } from '@/lib/athlete-os/services/aerobic/aerobicAn
 
 const CONF_COLOR = { high: '#10b981', moderate: '#eab308', low: '#f97316' } as const;
 
-export default function AerobicView({ model }: { model: AerobicModel | null }) {
+export default function AerobicView({ model, decoupling }: { model: AerobicModel | null; decoupling?: DecouplingSummary | null }) {
   if (!model) {
     return <div className="p-8 text-center text-sm text-gray-11">Not enough HR + {`${'intensity'}`} data yet to derive zones for this sport.</div>;
   }
@@ -155,10 +155,43 @@ export default function AerobicView({ model }: { model: AerobicModel | null }) {
         <p className="text-xs text-gray-10">⚠ = labelled easy but {'>'}50% of time was above Zone 2 (tempo/threshold).</p>
       </div>
 
-      {!decouplingAvailable && (
+      {/* Aerobic decoupling — from Strava per-second streams */}
+      {decoupling ? (
+        <div className="flex flex-col gap-3">
+          <SectionLabel>Aerobic decoupling · {decoupling.count} streamed {model.sport === 'cycling' ? 'rides' : 'runs'}</SectionLabel>
+          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-gray-6 bg-gray-2 px-4 py-3">
+            <Stat label="Sustainable ceiling" value={decoupling.ceilingLabel} sub={decoupling.ceilingHr ? `~${decoupling.ceilingHr} bpm · <5% drift` : '<5% drift'} color="#34d399" />
+            <Divider />
+            <Stat label="Avg decoupling" value={`${decoupling.avgDecoupling}%`} sub="lower = more aerobic" color={decoupling.avgDecoupling < 5 ? '#10b981' : decoupling.avgDecoupling < 8 ? '#eab308' : '#f97316'} />
+            <Divider />
+            <Stat label="Aerobic efforts" value={`${decoupling.aerobicCount}/${decoupling.count}`} sub="stayed coupled" />
+          </div>
+          {decoupling.driftCurve && decoupling.driftCurve.length >= 3 && (
+            <div className="rounded-lg border border-gray-6 bg-gray-2 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-11">HR drift · {decoupling.driftRideName ?? 'longest effort'}</span>
+                <span className="text-xs" style={{ color: (decoupling.driftDecoupling ?? 0) < 5 ? '#10b981' : '#f97316' }}>
+                  {decoupling.driftDecoupling}% decoupling
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={130}>
+                <LineChart data={decoupling.driftCurve} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-5)" />
+                  <XAxis dataKey="min" tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} unit="m" />
+                  <YAxis domain={['dataMin - 3', 'dataMax + 3']} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} width={34} unit="%" />
+                  <ReferenceLine y={100} stroke="var(--gray-7)" strokeDasharray="3 3" />
+                  <Tooltip content={({ active, payload }) => active && payload?.length ? <div className="rounded border border-gray-6 bg-gray-2 px-2 py-1 text-xs text-gray-12">{(payload[0].payload as { min: number }).min}m: {payload[0].value}% of starting efficiency</div> : null} />
+                  <Line type="monotone" dataKey="efPct" stroke="#0090FF" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+              <p className="mt-1 text-[10px] text-gray-10">Efficiency (output ÷ HR) as % of the effort's start. A flat line = aerobically coupled; a downward slope = HR drifting up (decoupling).</p>
+            </div>
+          )}
+        </div>
+      ) : (
         <div className="rounded-lg border border-dashed border-gray-6 bg-gray-2 px-4 py-3 text-xs text-gray-10">
-          <span className="font-medium text-gray-11">Aerobic decoupling & HR drift — pending.</span> True first-half vs second-half drift
-          needs per-second streams, which aren't stored yet. A Strava stream-ingestion pipeline is the next step to unlock it.
+          <span className="font-medium text-gray-11">Aerobic decoupling — ingesting.</span> Per-second streams are being pulled from Strava
+          and analysed; drift and the sustainable aerobic ceiling will appear here as rides are processed.
         </div>
       )}
     </div>
