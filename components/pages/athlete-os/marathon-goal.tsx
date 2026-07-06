@@ -56,6 +56,14 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
     return row;
   });
   const targetMin = model.targetSeconds / 60;
+  const currentMin = model.predictedSeconds != null ? Math.round(model.predictedSeconds / 60) : null;
+  const currentPace = model.predictedSeconds != null ? fmtPace(paceOf(model.predictedSeconds)) : null;
+  // Shared Y domain so the time (left) and pace (right) axes line up.
+  const chartVals = chart.flatMap((r) => [r.actual, r.target, r.projection].filter((v): v is number => v != null));
+  const maxVal = Math.max(targetMin, currentMin ?? 0, ...chartVals);
+  const yDomain: [number, number] = [Math.floor(targetMin - 4), Math.ceil(maxVal + 6)];
+  const timeTick = (v: number) => `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, '0')}`;
+  const paceTick = (v: number) => fmtPace(paceOf(v * 60));
 
   // Are we improving fast enough?
   const needed = model.neededImprovementPerMonth; // sec/mo required
@@ -103,13 +111,20 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
             {needed != null ? ` · need ~${fmtPace(needed)}/mo` : ''}
           </span>
         </div>
-        <ResponsiveContainer width="100%" height={210}>
-          <LineChart data={chart} margin={{ top: 8, right: 12, bottom: 0, left: -4 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={chart} margin={{ top: 8, right: 4, bottom: 0, left: -4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-5)" />
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} minTickGap={18} />
-            <YAxis width={46} domain={[targetMin - 8, 'dataMax + 8']} tickFormatter={(v) => `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, '0')}`}
-              tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} />
-            <ReferenceLine y={targetMin} stroke="#2dd4bf" strokeDasharray="5 4" label={{ value: 'sub-4', fill: '#2dd4bf', fontSize: 10, position: 'insideTopRight' }} />
+            <YAxis yAxisId="time" width={46} domain={yDomain} tickFormatter={timeTick} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} />
+            <YAxis yAxisId="pace" orientation="right" width={52} domain={yDomain} tickFormatter={paceTick}
+              tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false}
+              label={{ value: 'pace /km', angle: 90, position: 'insideRight', fill: 'var(--gray-10)', fontSize: 9 }} />
+            <ReferenceLine yAxisId="time" y={targetMin} stroke="#2dd4bf" strokeDasharray="5 4"
+              label={{ value: `sub-4 · ${fmtPace(model.marathonPaceSecPerKm)}/km`, fill: '#2dd4bf', fontSize: 10, position: 'insideTopRight' }} />
+            {currentMin != null && (
+              <ReferenceLine yAxisId="time" y={currentMin} stroke="#f97316" strokeDasharray="2 3"
+                label={{ value: `now · ${currentPace}/km`, fill: '#f97316', fontSize: 10, position: 'insideBottomRight' }} />
+            )}
             <Tooltip content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const rows = payload.filter((p) => p.value != null);
@@ -128,13 +143,13 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
               );
             }} />
             <Legend wrapperStyle={{ fontSize: 10 }} iconType="plainline" />
-            <Line type="monotone" dataKey="actual" name="Actual" stroke="#0090FF" strokeWidth={2} dot={{ r: 2 }} connectNulls />
-            <Line type="monotone" dataKey="projection" name="At current rate" stroke="#f97316" strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
-            <Line type="monotone" dataKey="target" name="Target" stroke="#2dd4bf" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls />
+            <Line yAxisId="time" type="monotone" dataKey="actual" name="Actual" stroke="#0090FF" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+            <Line yAxisId="time" type="monotone" dataKey="projection" name="At current rate" stroke="#f97316" strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
+            <Line yAxisId="time" type="monotone" dataKey="target" name="Target" stroke="#2dd4bf" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls />
           </LineChart>
         </ResponsiveContainer>
         <p className="mt-1 text-[10px] text-gray-10">
-          Blue = your real predicted finish (best effort each month). Teal dashed = the target glide to sub-4. Orange dashed = where you land at your current rate of improvement. If orange stays above teal, pick up the training.
+          Left axis = finish time, right axis = pace (min/km). Orange line = your current pace ({currentPace ?? '—'}/km); teal = the sub-4 target ({fmtPace(model.marathonPaceSecPerKm)}/km). Blue = actual, orange dashed = where you land at your current rate. Close the gap between the two horizontal lines.
         </p>
       </div>
 
