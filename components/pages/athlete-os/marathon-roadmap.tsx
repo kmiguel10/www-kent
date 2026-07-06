@@ -18,6 +18,13 @@ const shortDate = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('
 export default function MarathonRoadmap({ roadmap }: { roadmap: Roadmap }) {
   const targetMin = roadmap.targetSec / 60;
   const line = roadmap.trajectory.map((t) => ({ date: t.date, target: t.predictedMin }));
+  // One X tick per month (the trajectory is sampled every 2 weeks, which would
+  // otherwise print the same month label twice).
+  const monthTicks = (() => {
+    const seen = new Set<string>(); const out: string[] = [];
+    for (const p of line) { const mo = p.date.slice(0, 7); if (!seen.has(mo)) { seen.add(mo); out.push(p.date); } }
+    return out;
+  })();
   // "You are here" — current actual predicted at today.
   const nowPoint = roadmap.current.predictedSec != null
     ? [{ date: line[0]?.date, you: Math.round(roadmap.current.predictedSec / 60) }]
@@ -34,7 +41,7 @@ export default function MarathonRoadmap({ roadmap }: { roadmap: Roadmap }) {
         <ResponsiveContainer width="100%" height={200}>
           <ComposedChart data={line} margin={{ top: 8, right: 12, bottom: 0, left: -6 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-5)" />
-            <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} minTickGap={24} />
+            <XAxis dataKey="date" ticks={monthTicks} tickFormatter={shortDate} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} />
             <YAxis domain={[targetMin - 6, 'dataMax + 6']} tickFormatter={fmtMin} tick={{ fontSize: 10, fill: 'var(--gray-10)' }} tickLine={false} axisLine={false} width={44} />
             <ReferenceLine y={targetMin} stroke="#2dd4bf" strokeDasharray="5 4" label={{ value: 'sub-4', fill: '#2dd4bf', fontSize: 10, position: 'insideTopRight' }} />
             <Tooltip content={({ active, payload }) => {
