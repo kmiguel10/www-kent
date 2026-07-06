@@ -130,7 +130,7 @@ export default function AthleteOsDashboard() {
     <div className="flex flex-col gap-5">
       {/* Marathon goal — the north star */}
       <Panel title="Marathon Goal" subtitle="Your live tracker toward sub-4 on Jan 31, 2027">
-        <MarathonGoal model={goalModel} />
+        <MarathonGoal model={goalModel} roadmap={roadmap} />
       </Panel>
 
       {/* Roadmap — the glide path + checkpoints */}

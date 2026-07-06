@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 
 import type { Roadmap, Phase } from '@/lib/athlete-os/services/marathon/roadmap';
-import { fmtTime } from '@/lib/athlete-os/services/marathon/marathonGoal';
+import { fmtTime, fmtPace } from '@/lib/athlete-os/services/marathon/marathonGoal';
 
 /**
  * Marathon roadmap — the glide path to sub-4 with monthly checkpoints of the
@@ -64,6 +64,7 @@ export default function MarathonRoadmap({ roadmap }: { roadmap: Roadmap }) {
               </div>
               <span className="text-[10px] text-gray-10">{shortDate(c.date)} {new Date(c.date + 'T00:00:00Z').getUTCFullYear()}</span>
               <Row label="Finish" value={fmtTime(c.predictedSec)} highlight={c.monthsOut === 0} />
+              <Row label="Pace" value={`${fmtPace(c.paceSecPerKm)}/km`} />
               <Row label="Volume" value={`${c.volumeKm} km/wk`} />
               <Row label="Long run" value={`${c.longestKm} km`} />
               <Row label="Easy" value={`${c.aerobicPct}%`} />

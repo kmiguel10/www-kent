@@ -21,6 +21,7 @@ export interface Checkpoint {
   label: string;
   phase: Phase;
   predictedSec: number;
+  paceSecPerKm: number; // marathon pace implied by the target finish
   volumeKm: number;
   longestKm: number;
   aerobicPct: number;
@@ -95,6 +96,7 @@ export function buildRoadmap(current: RoadmapCurrent): Roadmap {
       label: m === 0 ? 'Race week' : `${m} mo out`,
       phase: phaseFor(wtr),
       predictedSec: Math.round(predAt(wtr)),
+      paceSecPerKm: predAt(wtr) / 42.195,
       volumeKm: volAt(wtr),
       longestKm: lrAt(wtr),
       aerobicPct: aerAt(wtr),
