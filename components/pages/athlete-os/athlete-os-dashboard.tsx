@@ -14,7 +14,6 @@ import { buildGoalModel } from '@/lib/athlete-os/services/marathon/marathonGoal'
 import { buildRoadmap } from '@/lib/athlete-os/services/marathon/roadmap';
 
 import MarathonGoal from './marathon-goal';
-import MarathonRoadmap from './marathon-roadmap';
 import AthleteOrb from './athlete-orb';
 import InsightFeed from './insight-feed';
 import CorrelationExplorer from './correlation-explorer';
@@ -128,14 +127,9 @@ export default function AthleteOsDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Marathon goal — the north star */}
+      {/* Marathon goal — the north star (tracker + periodized checkpoints) */}
       <Panel title="Marathon Goal" subtitle="Your live tracker toward sub-4 on Jan 31, 2027">
         <MarathonGoal model={goalModel} roadmap={roadmap} />
-      </Panel>
-
-      {/* Roadmap — the glide path + checkpoints */}
-      <Panel title="Road to Sub-4" subtitle="Target stats at each checkpoint from now to race day">
-        <MarathonRoadmap roadmap={roadmap} />
       </Panel>
 
       {/* Orb — today */}

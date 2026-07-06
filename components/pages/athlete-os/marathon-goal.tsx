@@ -3,7 +3,10 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { Flag, Check, AlertTriangle } from 'lucide-react';
 
 import { type GoalModel, fmtTime, fmtPace } from '@/lib/athlete-os/services/marathon/marathonGoal';
-import type { Roadmap } from '@/lib/athlete-os/services/marathon/roadmap';
+import type { Roadmap, Phase } from '@/lib/athlete-os/services/marathon/roadmap';
+
+const PHASE_COLOR: Record<Phase, string> = { base: '#0090FF', build: '#a855f7', peak: '#f97316', taper: '#10b981' };
+const shortMonth = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
 
 /**
  * Marathon Goal — north-star tracker. The chart overlays your ACTUAL predicted
@@ -168,6 +171,30 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
         </p>
       </div>
 
+      {/* Checkpoints — the periodized target stats at each milestone */}
+      <div>
+        <span className="text-xs font-semibold uppercase tracking-widest text-gray-10">Checkpoints · target stats by date</span>
+        <div className="mt-2 flex gap-3 overflow-x-auto pb-1">
+          {roadmap.checkpoints.map((c) => (
+            <div key={c.monthsOut} className="flex min-w-[150px] flex-1 flex-col gap-2 rounded-xl border border-gray-6 bg-gray-2 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-12">{c.label}</span>
+                <span className="rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase" style={{ color: PHASE_COLOR[c.phase], background: 'var(--gray-3)' }}>{c.phase}</span>
+              </div>
+              <span className="text-[10px] text-gray-10">{shortMonth(c.date)} {new Date(c.date + 'T00:00:00Z').getUTCFullYear()}</span>
+              <CkRow label="Finish" value={fmtTime(c.predictedSec)} highlight={c.monthsOut === 0} />
+              <CkRow label="Pace" value={`${fmtPace(c.paceSecPerKm)}/km`} />
+              <CkRow label="Volume" value={`${c.volumeKm} km/wk`} />
+              <CkRow label="Long run" value={`${c.longestKm} km`} />
+              <CkRow label="Easy" value={`${c.aerobicPct}%`} />
+            </div>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] text-gray-10">
+          A reverse-periodized sub-4 build: base → build → peak (~3–5 wks out) → taper. Targets to train toward — hit them and the finish time follows.
+        </p>
+      </div>
+
       {/* Levers */}
       <div>
         <span className="text-xs font-semibold uppercase tracking-widest text-gray-10">What closes the gap</span>
@@ -197,6 +224,15 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function CkRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-gray-10">{label}</span>
+      <span className={highlight ? 'font-semibold text-teal-400' : 'font-medium text-gray-12'}>{value}</span>
     </div>
   );
 }
