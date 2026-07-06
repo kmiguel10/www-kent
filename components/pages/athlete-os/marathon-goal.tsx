@@ -104,12 +104,27 @@ export default function MarathonGoal({ model, roadmap }: { model: GoalModel; roa
 
       {/* Live tracking chart: actual vs target vs projection */}
       <div className="rounded-xl border border-gray-6 bg-gray-2 p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-11">Are you on pace? · actual vs target since Jan 2026</span>
-          <span className="text-[10px] text-gray-10">
-            {rate > 0 ? `improving ~${fmtPace(rate)}/mo faster` : 'need a recent hard effort'}
-            {needed != null ? ` · need ~${fmtPace(needed)}/mo` : ''}
-          </span>
+        <div className="mb-2 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-11">Are you on pace?</span>
+            <span className="text-[10px] text-gray-10">
+              {rate > 0 ? `improving ~${fmtPace(rate)}/mo` : 'need a recent hard effort'}
+              {needed != null ? ` · need ~${fmtPace(needed)}/mo` : ''}
+            </span>
+          </div>
+          {/* Current vs target pace — always visible, the heart of "on pace?" */}
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-6 bg-gray-3 px-3 py-2 text-sm">
+            <span className="text-gray-11">Current pace</span>
+            <span className="text-lg font-semibold" style={{ color: '#f97316' }}>{currentPace ?? '—'}<span className="text-xs font-normal">/km</span></span>
+            <span className="text-gray-9">→</span>
+            <span className="text-gray-11">Target</span>
+            <span className="text-lg font-semibold" style={{ color: '#2dd4bf' }}>{fmtPace(model.marathonPaceSecPerKm)}<span className="text-xs font-normal">/km</span></span>
+            {model.predictedSeconds != null && (
+              <span className="ml-auto text-xs text-gray-10">
+                {fmtPace(paceOf(model.predictedSeconds) - model.marathonPaceSecPerKm)}/km faster to hit sub-4
+              </span>
+            )}
+          </div>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={chart} margin={{ top: 8, right: 4, bottom: 0, left: -4 }}>
