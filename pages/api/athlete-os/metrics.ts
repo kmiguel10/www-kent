@@ -40,7 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       supabase.from('whoop_recovery').select('date, recovery_score, hrv_rmssd_milli, resting_heart_rate'),
       supabase.from('whoop_sleep').select('date, nap, sleep_performance_percentage, rem_minutes, slow_wave_minutes'),
       supabase.from('whoop_cycles').select('date, strain'),
-      supabase.from('activities').select('source, sport_type, start_time, distance_meters, duration_seconds, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, raw_data'),
+      // Only the small fields we actually use — NOT the whole raw_data blob (which
+      // holds segments/splits/laps and can be megabytes/row → function timeout).
+      // HR time-in-zone is pulled as individual JSON keys via the -> operator.
+      supabase.from('activities').select('sport_type, start_time, distance_meters, duration_seconds, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, suffer_score, z1:raw_data->hrTimeInZone_1, z2:raw_data->hrTimeInZone_2, z3:raw_data->hrTimeInZone_3, z4:raw_data->hrTimeInZone_4, z5:raw_data->hrTimeInZone_5'),
     ]);
 
     // Per-metric maps of date → value. WHOOP is preferred where it overlaps
@@ -98,8 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         agg.sum += a.avg_pace_seconds_per_km; agg.n += 1;
         paceAgg.set(day, agg);
       }
-      const rd = a.raw_data ?? {};
-      const z = [1, 2, 3, 4, 5].map((i) => Number(rd[`hrTimeInZone_${i}`]) || 0);
+      const z = [a.z1, a.z2, a.z3, a.z4, a.z5].map((v) => Number(v) || 0);
       if (z.reduce((s, v) => s + v, 0) > 0) {
         const agg = zoneByDay.get(day) ?? { easy: 0, grey: 0, hard: 0 };
         agg.easy += z[0] + z[1];
@@ -107,7 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         agg.hard += z[3] + z[4];
         zoneByDay.set(day, agg);
       }
-      const suffer = (rd.suffer_score ?? rd.sufferScore) ?? null;
+      const suffer = a.suffer_score ?? null;
       loadInputs.push({
         date: day,
         sufferScore: typeof suffer === 'number' ? suffer : null,
