@@ -22,7 +22,7 @@ import ZoneDiscipline from './zone-discipline';
 import AerobicEngine from './aerobic-engine';
 import WeightLog from './weight-log';
 
-const EMPTY_MARATHON: MarathonPayload = { prs: [], predictionTrend: [], weeklyMileage: [], longestRunKm: 0, recentWeeklyAvgKm: 0, latestPredictionFrom: null };
+const EMPTY_MARATHON: MarathonPayload = { prs: [], predictionTrend: [], weeklyMileage: [], longestRunKm: 0, recentWeeklyAvgKm: 0, latestPredictionFrom: null, currentPredictedSec: null, currentPredictionFrom: null };
 
 /**
  * Athlete OS dashboard — orchestrates data fetch, runs the correlation engine

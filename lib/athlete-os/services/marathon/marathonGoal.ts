@@ -76,8 +76,10 @@ export function buildGoalModel(data: MarathonPayload, aerobicPct: number | null)
   // Current prediction: most recent monthly best (already Riegel-projected), and
   // the exact effort it came from (kept consistent by the API).
   const trend = data.predictionTrend.map((p) => ({ month: p.month, predicted: p.predictedSec }));
-  const predictedSeconds = trend.length ? trend[trend.length - 1].predicted : null;
-  const predictedFrom = data.latestPredictionFrom;
+  // Headline prediction is the rolling-window best (falls back to the last trend
+  // point for older payloads that predate the field).
+  const predictedSeconds = data.currentPredictedSec ?? (trend.length ? trend[trend.length - 1].predicted : null);
+  const predictedFrom = data.currentPredictionFrom ?? data.latestPredictionFrom;
 
   const gapSeconds = predictedSeconds != null ? predictedSeconds - GOAL.targetSeconds : null;
 
