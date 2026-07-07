@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
+import { selectWithRetry } from '@/lib/athlete-os/services/fitnessQuery';
 
 /**
  * Marathon-goal inputs: best efforts (PRs), a monthly predicted-marathon trend
@@ -34,12 +35,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (req.method !== 'GET') { res.status(405).end(); return; }
 
   try {
-    const { data, error } = await getFitnessSupabase()
-      .from('activities')
-      .select('sport_type, start_time, distance_meters, raw_data')
-      .order('start_time', { ascending: true })
-      .limit(3000);
-    if (error) throw error;
+    const data = await selectWithRetry(() =>
+      getFitnessSupabase()
+        .from('activities')
+        .select('sport_type, start_time, distance_meters, raw_data')
+        .order('start_time', { ascending: true })
+        .limit(3000),
+    );
 
     const runs = (data ?? []).filter((a) => isRun(a.sport_type) && a.start_time);
 
@@ -96,7 +98,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     res.setHeader('cache-control', 'public, s-maxage=3600, stale-while-revalidate=600');
     res.status(200).json({ prs, predictionTrend, weeklyMileage, longestRunKm, recentWeeklyAvgKm, latestPredictionFrom });
   } catch (err) {
+    // 503 (not 200-empty) so the client retries instead of blanking the panel.
     console.error('athlete-os marathon:', err);
-    res.status(200).json(empty);
+    res.status(503).json(empty);
   }
 }

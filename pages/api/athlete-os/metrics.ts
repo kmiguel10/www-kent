@@ -160,7 +160,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     res.setHeader('cache-control', 'public, s-maxage=3600, stale-while-revalidate=600');
     res.status(200).json({ matrix, scores, today, coverage });
   } catch (err) {
+    // 503 (not 200-empty) so the client retries instead of blanking the dashboard.
     console.error('athlete-os metrics:', err);
-    res.status(200).json(empty);
+    res.status(503).json(empty);
   }
 }

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
+import { selectWithRetry } from '@/lib/athlete-os/services/fitnessQuery';
 import type { ZoneSession } from '@/lib/athlete-os/services/zones/zoneAnalysis';
 
 /**
@@ -27,12 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   try {
-    const { data, error } = await getFitnessSupabase()
-      .from('activities')
-      .select('sport_type, start_time, duration_seconds, avg_heart_rate, max_heart_rate, raw_data')
-      .order('start_time', { ascending: false })
-      .limit(2000);
-    if (error) throw error;
+    const data = await selectWithRetry(() =>
+      getFitnessSupabase()
+        .from('activities')
+        .select('sport_type, start_time, duration_seconds, avg_heart_rate, max_heart_rate, raw_data')
+        .order('start_time', { ascending: false })
+        .limit(2000),
+    );
 
     const sessions: ZoneSession[] = [];
     let observedMaxHr = 0;
@@ -65,7 +67,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     res.setHeader('cache-control', 'public, s-maxage=3600, stale-while-revalidate=600');
     res.status(200).json({ sessions, observedMaxHr: observedMaxHr || null });
   } catch (err) {
+    // 503 (not 200-empty) so the client retries instead of blanking the panel.
     console.error('athlete-os zones:', err);
-    res.status(200).json({ sessions: [], observedMaxHr: null });
+    res.status(503).json({ sessions: [], observedMaxHr: null });
   }
 }
