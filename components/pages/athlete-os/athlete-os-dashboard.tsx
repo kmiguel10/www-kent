@@ -57,6 +57,24 @@ function Skeleton() {
   );
 }
 
+// Fetch JSON with retries. The Athlete OS data routes return 503 on a transient
+// DB error (rather than a misleading 200-empty), so retrying here lets a blip on
+// any one of the parallel mount requests self-heal instead of blanking a panel.
+async function fetchJson<T>(url: string, retries = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url} → ${res.status}`);
+      return (await res.json()) as T;
+    } catch (e) {
+      lastErr = e;
+      if (i < retries - 1) await new Promise((r) => setTimeout(r, 250 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export default function AthleteOsDashboard() {
   const [data, setData] = useState<AthleteOsPayload | null>(null);
   const [zones, setZones] = useState<{ sessions: ZoneSession[]; observedMaxHr: number | null }>({ sessions: [], observedMaxHr: null });
@@ -68,15 +86,15 @@ export default function AthleteOsDashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/athlete-os/metrics').then((r) => r.json()),
-      fetch('/api/athlete-os/zones').then((r) => r.json()),
-      fetch('/api/athlete-os/cycling').then((r) => r.json()),
-      fetch('/api/athlete-os/running').then((r) => r.json()),
-      fetch('/api/athlete-os/marathon').then((r) => r.json()),
+      fetchJson<AthleteOsPayload>('/api/athlete-os/metrics'),
+      fetchJson<{ sessions: ZoneSession[]; observedMaxHr: number | null }>('/api/athlete-os/zones'),
+      fetchJson<{ rides: RideSummary[] }>('/api/athlete-os/cycling'),
+      fetchJson<{ runs: RunSummary[] }>('/api/athlete-os/running'),
+      fetchJson<MarathonPayload>('/api/athlete-os/marathon'),
     ])
       .then(([d, z, c, rn, mar]) => {
-        setData(d as AthleteOsPayload); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []);
-        setMarathon(mar as MarathonPayload); setLoading(false);
+        setData(d); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []);
+        setMarathon(mar); setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);

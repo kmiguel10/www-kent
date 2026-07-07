@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
+import { selectWithRetry } from '@/lib/athlete-os/services/fitnessQuery';
 import type { RunSummary } from '@/lib/athlete-os/services/aerobic/runningAnalysis';
 
 /**
@@ -15,12 +16,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (req.method !== 'GET') { res.status(405).end(); return; }
 
   try {
-    const { data, error } = await getFitnessSupabase()
-      .from('activities')
-      .select('sport_type, name, start_time, duration_seconds, distance_meters, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, raw_data')
-      .order('start_time', { ascending: true })
-      .limit(3000);
-    if (error) throw error;
+    const data = await selectWithRetry(() =>
+      getFitnessSupabase()
+        .from('activities')
+        .select('sport_type, name, start_time, duration_seconds, distance_meters, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, raw_data')
+        .order('start_time', { ascending: true })
+        .limit(3000),
+    );
 
     // De-dupe Strava+Garmin copies of the same run (same day + duration),
     // preferring the copy that carries HR time-in-zone data.
@@ -55,7 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     res.setHeader('cache-control', 'public, s-maxage=3600, stale-while-revalidate=600');
     res.status(200).json({ runs });
   } catch (err) {
+    // Surface as 503 (not 200-empty) so the client retries instead of showing a
+    // misleading "not enough data" empty state.
     console.error('athlete-os running:', err);
-    res.status(200).json({ runs: [] });
+    res.status(503).json({ runs: [] });
   }
 }
