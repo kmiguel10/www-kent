@@ -126,24 +126,87 @@ export default function ZoneDiscipline({
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-semibold uppercase tracking-widest text-gray-10">Recent sessions</span>
         <div className="flex items-end gap-[3px]" style={{ height: 88 }}>
-          {recent.map(({ s, split }, i) => (
-            <motion.div
-              key={i}
-              className="group relative flex-1 overflow-hidden rounded-sm"
-              style={{ height: '100%', minWidth: 4 }}
-              initial={{ opacity: 0, scaleY: 0.4 }}
-              animate={{ opacity: 1, scaleY: 1 }}
-              transition={{ duration: 0.3, delay: Math.min(i * 0.01, 0.3) }}
-              title={`${s.date} · ${s.sport} · Easy ${Math.round(split.easy)}% / Grey ${Math.round(split.grey)}% / Hard ${Math.round(split.hard)}%`}
-            >
-              <div style={{ height: `${split.hard}%`, background: HARD }} />
-              <div style={{ height: `${split.grey}%`, background: GREY }} />
-              <div style={{ height: `${split.easy}%`, background: EASY }} />
-            </motion.div>
-          ))}
+          {recent.map(({ s, split }, i) => {
+            const align = i < 3 ? 'left' : i >= recent.length - 3 ? 'right' : 'center';
+            return (
+              <div key={i} className="group relative flex-1" style={{ height: '100%', minWidth: 4 }}>
+                <motion.div
+                  className="h-full overflow-hidden rounded-sm"
+                  initial={{ opacity: 0, scaleY: 0.4 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  transition={{ duration: 0.3, delay: Math.min(i * 0.01, 0.3) }}
+                >
+                  <div style={{ height: `${split.hard}%`, background: HARD }} />
+                  <div style={{ height: `${split.grey}%`, background: GREY }} />
+                  <div style={{ height: `${split.easy}%`, background: EASY }} />
+                </motion.div>
+                <SessionTooltip s={s} split={split} align={align} />
+              </div>
+            );
+          })}
         </div>
         <span className="text-[10px] text-gray-10">Each bar = one session, oldest → newest. A healthy easy day is mostly green.</span>
       </div>
+    </div>
+  );
+}
+
+function fmtDur(sec: number) {
+  const m = Math.round(sec / 60);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function SessionTooltip({
+  s, split, align,
+}: {
+  s: ZoneSession;
+  split: { easy: number; grey: number; hard: number };
+  align: 'left' | 'center' | 'right';
+}) {
+  const pos = align === 'left' ? 'left-0' : align === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2';
+  return (
+    <div
+      className={clsx(
+        'pointer-events-none absolute bottom-full z-20 mb-2 hidden w-48 rounded-lg border border-gray-6 bg-gray-3 p-3 text-xs shadow-xl group-hover:block',
+        pos,
+      )}
+    >
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <span className="font-semibold text-gray-12">{fmtDate(s.date)}</span>
+        <span className="capitalize text-gray-10">{s.sport}</span>
+      </div>
+      <div className="mb-2 flex items-center gap-1.5 text-gray-11">
+        <span>{fmtDur(s.durationSeconds)}</span>
+        {s.avgHr != null && (
+          <>
+            <span className="text-gray-7">·</span>
+            <span>{s.avgHr} bpm avg</span>
+          </>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <TipRow color={EASY} label="Easy" pct={split.easy} />
+        <TipRow color={GREY} label="Grey" pct={split.grey} />
+        <TipRow color={HARD} label="Hard" pct={split.hard} />
+      </div>
+    </div>
+  );
+}
+
+function TipRow({ color, label, pct }: { color: string; label: string; pct: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+      <span className="w-8 text-gray-11">{label}</span>
+      <span className="h-1 flex-1 overflow-hidden rounded-full bg-gray-4">
+        <span className="block h-full" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }} />
+      </span>
+      <span className="w-9 text-right tabular-nums text-gray-12">{Math.round(pct)}%</span>
     </div>
   );
 }
