@@ -15,6 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Vercel discontinued Node 20.x — build on Node 24 (matches package.json engines).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - uses: pnpm/action-setup@v2
         name: Install pnpm
         id: pnpm-install
