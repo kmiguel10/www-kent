@@ -19,7 +19,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const data = await selectWithRetry(() =>
       getFitnessSupabase()
         .from('activities')
-        .select('sport_type, name, start_time, duration_seconds, distance_meters, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, raw_data')
+        .select(
+          'sport_type, name, start_time, duration_seconds, distance_meters, avg_heart_rate, max_heart_rate, avg_pace_seconds_per_km, startTimeLocal:raw_data->>startTimeLocal, hrTimeInZone_1:raw_data->hrTimeInZone_1, hrTimeInZone_2:raw_data->hrTimeInZone_2, hrTimeInZone_3:raw_data->hrTimeInZone_3, hrTimeInZone_4:raw_data->hrTimeInZone_4, hrTimeInZone_5:raw_data->hrTimeInZone_5',
+        )
+        .eq('source', 'garmin')
         .order('start_time', { ascending: true })
         .limit(3000),
     );
@@ -30,12 +33,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     for (const a of data ?? []) {
       if (!a.start_time || !isRun(a.sport_type)) continue;
-      const rd = a.raw_data ?? {};
+      const rd = a as Record<string, any>; // aliased raw_data keys (Garmin)
       const hrZoneSecs = [1, 2, 3, 4, 5].map((i) => Number(rd[`hrTimeInZone_${i}`]) || 0);
       const treadmill = /treadmill/i.test(a.sport_type ?? '') || /treadmill|indoor/i.test(a.name ?? '');
 
       const run: RunSummary = {
-        date: localDay(a.start_time),
+        date: localDay(rd.startTimeLocal ?? a.start_time),
         name: a.name ?? 'Run',
         treadmill,
         durationSeconds: a.duration_seconds ?? 0,

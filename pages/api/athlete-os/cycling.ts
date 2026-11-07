@@ -24,7 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const data = await selectWithRetry(() =>
       getFitnessSupabase()
         .from('activities')
-        .select('source, sport_type, name, start_time, duration_seconds, avg_heart_rate, max_heart_rate, raw_data')
+        .select(
+          'source, sport_type, name, start_time, duration_seconds, avg_heart_rate, max_heart_rate, startTimeLocal:raw_data->>startTimeLocal, maxAvgPower_1:raw_data->maxAvgPower_1, maxAvgPower_2:raw_data->maxAvgPower_2, maxAvgPower_5:raw_data->maxAvgPower_5, maxAvgPower_10:raw_data->maxAvgPower_10, maxAvgPower_20:raw_data->maxAvgPower_20, maxAvgPower_30:raw_data->maxAvgPower_30, maxAvgPower_60:raw_data->maxAvgPower_60, maxAvgPower_120:raw_data->maxAvgPower_120, maxAvgPower_300:raw_data->maxAvgPower_300, maxAvgPower_600:raw_data->maxAvgPower_600, maxAvgPower_1200:raw_data->maxAvgPower_1200, maxAvgPower_1800:raw_data->maxAvgPower_1800, maxAvgPower_3600:raw_data->maxAvgPower_3600, hrTimeInZone_1:raw_data->hrTimeInZone_1, hrTimeInZone_2:raw_data->hrTimeInZone_2, hrTimeInZone_3:raw_data->hrTimeInZone_3, hrTimeInZone_4:raw_data->hrTimeInZone_4, hrTimeInZone_5:raw_data->hrTimeInZone_5, startLatitude:raw_data->startLatitude, manufacturer:raw_data->manufacturer, duration:raw_data->duration, avgPower:raw_data->avgPower, normPower:raw_data->normPower, averageBikingCadenceInRevPerMinute:raw_data->averageBikingCadenceInRevPerMinute',
+        )
+        .eq('source', 'garmin')
         .order('start_time', { ascending: true })
         .limit(3000),
     );
@@ -35,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     for (const a of data ?? []) {
       if (!a.start_time || !isRide(a.sport_type)) continue;
-      const rd = a.raw_data ?? {};
+      const rd = a as Record<string, any>; // aliased raw_data keys (Garmin)
       const powerCurve: Record<number, number> = {};
       for (const sec of CURVE_SECONDS) {
         const v = Number(rd[`maxAvgPower_${sec}`]);
@@ -48,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         (rd.startLatitude == null && rd.manufacturer != null);
 
       const ride: RideSummary = {
-        date: localDay(a.start_time),
+        date: localDay(rd.startTimeLocal ?? a.start_time),
         name: a.name ?? 'Ride',
         indoor,
         durationSeconds: a.duration_seconds ?? Number(rd.duration) ?? 0,

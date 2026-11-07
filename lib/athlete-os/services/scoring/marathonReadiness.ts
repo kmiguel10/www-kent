@@ -27,7 +27,7 @@ export function computeMarathonReadiness(matrix: DailyMatrix): (number | null)[]
   const mileage = seriesOf(matrix, 'mileage');
   const recoveryScored = toScore0to100(seriesOf(matrix, 'recovery'), 'recovery');
   const hrvScored = toScore0to100(seriesOf(matrix, 'hrv'), 'hrv');
-  const sleepScored = toScore0to100(seriesOf(matrix, 'sleepScore'), 'sleepScore');
+  const sleepScored = toScore0to100(seriesOf(matrix, 'sleepPerformance'), 'sleepPerformance');
 
   // Normalize 28-day mileage volume across the dataset for the base sub-score.
   const vol28: (number | null)[] = matrix.dates.map((_, i) => {

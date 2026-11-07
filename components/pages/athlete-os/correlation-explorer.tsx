@@ -49,8 +49,8 @@ export default function CorrelationExplorer({ matrix }: { matrix: DailyMatrix })
   // Default to two metrics with deep shared history (both Garmin) so the first
   // view is a populated scatter; WHOOP-sourced metrics are still selectable but
   // only have a few days of overlap so far.
-  const [x, setX] = useState<MetricKey>('sleepScore');
-  const [y, setY] = useState<MetricKey>('trainingReadiness');
+  const [x, setX] = useState<MetricKey>('sleepDuration');
+  const [y, setY] = useState<MetricKey>('runPerf');
   const [window, setWindow] = useState<RollingWindow>(90);
   const [lag, setLag] = useState<LagDays | 'auto'>('auto');
   const [method, setMethod] = useState<'pearson' | 'spearman'>('pearson');

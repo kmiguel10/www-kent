@@ -101,7 +101,7 @@ export function generateInsights(
   }
 
   // 4. Trend — a notable multi-day move in a key metric.
-  for (const key of ['hrv', 'sleepScore', 'recovery'] as MetricKey[]) {
+  for (const key of ['hrv', 'sleepPerformance', 'recovery'] as MetricKey[]) {
     const t = trendDelta(matrix, key, 7);
     if (t != null && Math.abs(t) >= 8) {
       insights.push({

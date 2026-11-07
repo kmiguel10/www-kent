@@ -21,13 +21,19 @@ import RelationshipGraph from './relationship-graph';
 import ZoneDiscipline from './zone-discipline';
 import AerobicEngine from './aerobic-engine';
 import WeightLog from './weight-log';
+import PerformanceDrivers from './performance-drivers';
+import SleepHabits from './sleep-habits';
 
-const EMPTY_MARATHON: MarathonPayload = { prs: [], predictionTrend: [], weeklyMileage: [], longestRunKm: 0, recentWeeklyAvgKm: 0, latestPredictionFrom: null, currentPredictedSec: null, currentPredictionFrom: null };
+const EMPTY_MARATHON: MarathonPayload = {
+  current: { raceSec: null, raceFrom: null, aerobicSec: null, vo2Sec: null, vo2max: null, ensembleSec: null, lowSec: null, highSec: null },
+  weekly: [], prs: [], weeklyMileage: [], longestRunKm: 0, recentWeeklyAvgKm: 0, hrMax: null,
+};
 
 /**
- * Athlete OS dashboard — orchestrates data fetch, runs the correlation engine
- * client-side (pure functions), and composes the four surfaces. Deliberately
- * self-contained and independent of the /fitness dashboard.
+ * Athlete OS dashboard — orchestrates data fetch, runs the correlation and
+ * drivers engines client-side (pure functions), and composes the surfaces.
+ * Sources: WHOOP for sleep & recovery, Garmin for activities. Independent of
+ * the /fitness dashboard.
  */
 
 function Panel({
@@ -138,21 +144,38 @@ export default function AthleteOsDashboard() {
     return (
       <div className="rounded-2xl border border-gray-6 bg-gray-1 p-10 text-center">
         <p className="text-sm text-gray-11">No data available yet.</p>
-        <p className="mt-1 text-xs text-gray-10">Athlete OS reads from your synced Garmin, WHOOP, and Strava data.</p>
+        <p className="mt-1 text-xs text-gray-10">Athlete OS reads WHOOP (sleep &amp; recovery) and Garmin (activities).</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Marathon goal — the north star (tracker + periodized checkpoints) */}
-      <Panel title="Marathon Goal" subtitle="Your live tracker toward sub-4 on Jan 31, 2027">
-        <MarathonGoal model={goalModel} roadmap={roadmap} />
+      {/* Sources */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-10">
+        <span className="rounded-full border border-gray-6 bg-gray-2 px-2.5 py-1">Sleep &amp; recovery · <span className="font-medium text-gray-12">WHOOP</span></span>
+        <span className="rounded-full border border-gray-6 bg-gray-2 px-2.5 py-1">Activities · <span className="font-medium text-gray-12">Garmin</span></span>
+        <span className="rounded-full border border-gray-6 bg-gray-2 px-2.5 py-1">Habits · <span className="font-medium text-gray-12">derived from WHOOP</span></span>
+      </div>
+
+      {/* Today — WHOOP readiness */}
+      <Panel title="Today" subtitle={data!.today ? `Readiness · ${data!.today.date} · from WHOOP recovery, HRV & sleep` : 'No WHOOP data for today yet'}>
+        <AthleteOrb today={data!.today} />
       </Panel>
 
-      {/* Orb — today */}
-      <Panel title="Today" subtitle={data!.today ? `Athlete Score · ${data!.today.date}` : 'No score for today'}>
-        <AthleteOrb today={data!.today} />
+      {/* Drivers — sleep / recovery / habits → training performance */}
+      <Panel title="What Drives Your Performance" subtitle="WHOOP sleep, recovery & habits vs your Garmin training performance — ranked by effect">
+        <PerformanceDrivers matrix={data!.matrix} />
+      </Panel>
+
+      {/* Habits */}
+      <Panel title="Sleep & Habits" subtitle="Bedtime, regularity, sleep debt and steps — and what they do to your recovery">
+        <SleepHabits matrix={data!.matrix} />
+      </Panel>
+
+      {/* Marathon goal */}
+      <Panel title="Marathon Goal" subtitle="Live tracker toward sub-4 on Jan 31, 2027 · Garmin runs only">
+        <MarathonGoal model={goalModel} roadmap={roadmap} />
       </Panel>
 
       {/* Insights */}

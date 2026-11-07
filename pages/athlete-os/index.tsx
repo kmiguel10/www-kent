@@ -13,9 +13,9 @@ const AthleteOsPage: NextPage = () => {
             Athlete OS
           </h1>
           <p className="mt-2 max-w-2xl text-gray-11">
-            A system for understanding how recovery, sleep, training, and running performance
-            relate — surfacing correlations and insights across Garmin, WHOOP, and Strava that
-            no single platform shows on its own.
+            A system for understanding what actually moves my training — pairing WHOOP sleep,
+            recovery and habits with Garmin run and ride performance, and projecting where it
+            all lands on race day.
           </p>
         </div>
         <AthleteOsDashboard />

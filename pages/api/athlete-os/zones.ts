@@ -31,7 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const data = await selectWithRetry(() =>
       getFitnessSupabase()
         .from('activities')
-        .select('sport_type, start_time, duration_seconds, avg_heart_rate, max_heart_rate, raw_data')
+        .select(
+          'sport_type, start_time, duration_seconds, avg_heart_rate, max_heart_rate, startTimeLocal:raw_data->>startTimeLocal, hrTimeInZone_1:raw_data->hrTimeInZone_1, hrTimeInZone_2:raw_data->hrTimeInZone_2, hrTimeInZone_3:raw_data->hrTimeInZone_3, hrTimeInZone_4:raw_data->hrTimeInZone_4, hrTimeInZone_5:raw_data->hrTimeInZone_5',
+        )
+        .eq('source', 'garmin')
         .order('start_time', { ascending: false })
         .limit(2000),
     );
@@ -45,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       const ride = isRide(a.sport_type);
       if (!run && !ride) continue;
 
-      const rd = a.raw_data ?? {};
+      const rd = a as Record<string, any>; // aliased raw_data keys (Garmin)
       const zoneSecs = [1, 2, 3, 4, 5].map((i) => Number(rd[`hrTimeInZone_${i}`]) || 0);
       const hasZones = zoneSecs.reduce((s, v) => s + v, 0) > 0;
       const avgHr = a.avg_heart_rate ?? null;
@@ -55,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       if (a.max_heart_rate && a.max_heart_rate > observedMaxHr) observedMaxHr = a.max_heart_rate;
 
       sessions.push({
-        date: localDay(a.start_time),
+        date: localDay(rd.startTimeLocal ?? a.start_time),
         sport: run ? 'run' : 'ride',
         durationSeconds: a.duration_seconds ?? 0,
         avgHr,

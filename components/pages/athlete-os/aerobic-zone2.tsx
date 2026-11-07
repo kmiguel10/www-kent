@@ -188,12 +188,7 @@ export default function AerobicView({ model, decoupling }: { model: AerobicModel
             </div>
           )}
         </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-gray-6 bg-gray-2 px-4 py-3 text-xs text-gray-10">
-          <span className="font-medium text-gray-11">Aerobic decoupling — ingesting.</span> Per-second streams are being pulled from Strava
-          and analysed; drift and the sustainable aerobic ceiling will appear here as rides are processed.
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 
 import { type RideSummary, buildCyclingModel } from '@/lib/athlete-os/services/aerobic/aerobicAnalysis';
 import { type RunSummary, buildRunningModel } from '@/lib/athlete-os/services/aerobic/runningAnalysis';
-import { summarizeDecoupling } from '@/lib/athlete-os/services/aerobic/decouplingAnalysis';
-import type { DecouplingRow } from '@/pages/api/athlete-os/decoupling';
 import AerobicView from './aerobic-zone2';
 
 /**
@@ -16,16 +14,9 @@ type Sport = 'cycling' | 'running';
 
 export default function AerobicEngine({ rides, runs }: { rides: RideSummary[]; runs: RunSummary[] }) {
   const [sport, setSport] = useState<Sport>('cycling');
-  const [decouplingRows, setDecouplingRows] = useState<DecouplingRow[]>([]);
-
-  useEffect(() => {
-    fetch('/api/athlete-os/decoupling').then((r) => r.json()).then((d) => setDecouplingRows(d.rows ?? [])).catch(() => {});
-  }, []);
-
   const cyclingModel = useMemo(() => buildCyclingModel(rides), [rides]);
   const runningModel = useMemo(() => buildRunningModel(runs), [runs]);
   const model = sport === 'cycling' ? cyclingModel : runningModel;
-  const decoupling = useMemo(() => summarizeDecoupling(decouplingRows, sport), [decouplingRows, sport]);
 
   return (
     <div className="flex flex-col">
@@ -45,7 +36,7 @@ export default function AerobicEngine({ rides, runs }: { rides: RideSummary[]; r
           ))}
         </div>
       </div>
-      <AerobicView model={model} decoupling={decoupling} />
+      <AerobicView model={model} />
     </div>
   );
 }

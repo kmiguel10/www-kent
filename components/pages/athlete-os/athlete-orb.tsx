@@ -93,9 +93,8 @@ export default function AthleteOrb({ today }: { today: AthleteScore | null }) {
       {/* Breakdown */}
       <div className="flex w-full max-w-md flex-col gap-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
-          <SubStat label="Recovery" value={today.recovery} color="#16a34a" />
+          <SubStat label="Recovery (WHOOP)" value={today.recovery} color="#16a34a" />
           <SubStat label="Sleep" value={today.sleepQuality} color="#0090FF" />
-          <SubStat label="Readiness" value={today.trainingReadiness} color="#14b8a6" />
           <SubStat label="Marathon" value={today.marathonReadiness} color="#2dd4bf" />
         </div>
 

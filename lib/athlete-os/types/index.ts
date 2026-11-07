@@ -10,28 +10,40 @@
 
 /** Every metric Athlete OS can reason about. Extend here to add a data source. */
 export type MetricKey =
-  // Recovery / physiology
+  // Recovery / physiology — WHOOP
   | 'recovery'
   | 'hrv'
   | 'restingHr'
-  | 'bodyBattery'
-  | 'trainingReadiness'
-  | 'stress'
-  // Sleep
-  | 'sleepScore'
+  | 'spo2'
+  | 'skinTemp'
+  | 'respiratoryRate'
+  // Sleep — WHOOP
   | 'sleepDuration'
   | 'sleepPerformance'
+  | 'sleepEfficiency'
+  | 'sleepConsistency'
   | 'remMinutes'
   | 'deepMinutes'
-  // Load / training
+  | 'disturbances'
+  | 'sleepDebt'
+  // Behaviors — derived from WHOOP
+  | 'bedtime'
+  | 'bedtimeShift'
+  | 'timeInBed'
+  | 'sleepDebt3d'
+  | 'steps'
+  // Load — WHOOP strain + Garmin activities
   | 'strain'
   | 'trainingLoad'
   | 'mileage'
-  // Performance
-  | 'runPace'
-  // Zone discipline
   | 'aerobicPct'
   | 'greyZonePct'
+  // Performance — Garmin activities
+  | 'runEfficiency'
+  | 'runPerf'
+  | 'rideEfficiency'
+  | 'ridePerf'
+  | 'vo2max'
   // Derived composites
   | 'athleteScore'
   | 'marathonReadiness';
@@ -45,7 +57,7 @@ export type MetricDirection = 'higherBetter' | 'lowerBetter' | 'load' | 'neutral
 
 export type MetricSource = 'garmin' | 'whoop' | 'strava' | 'derived';
 
-export type MetricCategory = 'recovery' | 'sleep' | 'load' | 'performance' | 'composite';
+export type MetricCategory = 'recovery' | 'sleep' | 'behavior' | 'load' | 'performance' | 'composite';
 
 export interface MetricDefinition {
   key: MetricKey;

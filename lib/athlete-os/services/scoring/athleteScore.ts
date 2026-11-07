@@ -18,14 +18,14 @@ import { computeMarathonReadiness } from './marathonReadiness';
  */
 
 // Weights sum to 1 across whichever inputs are present on a given day.
+// All inputs are WHOOP (sleep & recovery are WHOOP-only since the 2026-11 revamp).
 const WEIGHTS: Partial<Record<MetricKey, number>> = {
-  recovery: 0.28,
-  hrv: 0.16,
-  sleepScore: 0.16,
-  sleepPerformance: 0.12,
-  trainingReadiness: 0.14,
-  bodyBattery: 0.08,
-  restingHr: 0.06,
+  recovery: 0.34,
+  hrv: 0.18,
+  sleepPerformance: 0.18,
+  sleepDebt3d: 0.12,
+  restingHr: 0.10,
+  sleepConsistency: 0.08,
 };
 
 // Load acts as a penalty when elevated (accumulated fatigue).
@@ -106,9 +106,10 @@ export function computeAthleteScores(matrix: DailyMatrix): AthleteScore[] {
     }
     contributors.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-    const recovery = cols.recovery?.[i] ?? cols.trainingReadiness?.[i] ?? null;
-    const sleepQuality = cols.sleepScore?.[i] ?? cols.sleepPerformance?.[i] ?? null;
-    const trainingReadiness = cols.trainingReadiness?.[i] ?? null;
+    const recovery = cols.recovery?.[i] ?? null;
+    const sleepQuality = cols.sleepPerformance?.[i] ?? null;
+    // WHOOP recovery IS WHOOP's training-readiness signal.
+    const trainingReadiness = cols.recovery?.[i] ?? null;
 
     return {
       score,
