@@ -29,6 +29,7 @@ import WeekBoard from './week-board';
 import PlanProgress from './plan-progress';
 import TrainingLoad from './training-load';
 import KeySessions from './key-sessions';
+import RecoveryTraining from './recovery-training';
 import type { PlanPayload } from '@/pages/api/athlete-os/plan';
 import { easyGreyHard } from '@/lib/athlete-os/services/zones/easyZones';
 
@@ -197,6 +198,12 @@ export default function AthleteOsDashboard() {
       <Panel title="Readiness Score" subtitle={data!.today ? `${data!.today.date} · from WHOOP recovery, HRV & sleep` : 'No WHOOP data for today yet'}>
         <AthleteOrb today={data!.today} />
       </Panel>
+
+      {plan && (
+        <Panel title="Recovery ↔ Training" subtitle="How readiness shapes your sessions — and how your sessions shape your readiness">
+          <RecoveryTraining matrix={data!.matrix} plan={plan} />
+        </Panel>
+      )}
 
       {/* Drivers — sleep / recovery / habits → training performance */}
       <Panel title="What Drives Your Performance" subtitle="WHOOP sleep, recovery & habits vs your Garmin training performance — ranked by effect">

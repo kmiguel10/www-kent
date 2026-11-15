@@ -38,6 +38,8 @@ export interface KeySession {
 
 export interface LoadPoint { date: string; ctl: number; atl: number; tsb: number }
 
+export type RunType = 'easy' | 'quality' | 'long' | 'other';
+
 export interface PlanPayload {
   today: string;
   race: typeof RACE;
@@ -55,6 +57,8 @@ export interface PlanPayload {
   };
   longestRecentKm: number;
   runnaCalendarConnected: boolean;
+  /** Session type per day from Runna names on Garmin runs (any plan). Long > quality > easy > other. */
+  runTypes: Record<string, RunType>;
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -228,6 +232,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return out;
     };
 
+    // Session type per day (all Runna-named runs, any plan) for recovery analysis.
+    const rank: Record<RunType, number> = { long: 3, quality: 2, easy: 1, other: 0 };
+    const runTypes: Record<string, RunType> = {};
+    for (const a of runs) {
+      const t: RunType = /long run/i.test(a.name) ? 'long' : QUALITY.test(a.name) ? 'quality' : /easy/i.test(a.name) ? 'easy' : 'other';
+      if (!runTypes[a.date] || rank[t] > rank[runTypes[a.date]]) runTypes[a.date] = t;
+    }
+
     const longestRecentKm = Math.round(Math.max(0, ...runs.filter((a) => a.date > since).map((a) => a.km)) * 10) / 10;
     const r1 = (p: LoadPoint) => ({ date: p.date, ctl: Math.round(p.ctl * 10) / 10, atl: Math.round(p.atl * 10) / 10, tsb: Math.round(p.tsb * 10) / 10 });
 
@@ -239,7 +251,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         atAdherence: adherence != null ? project(adherence).map(r1) : [],
         adherence, adherenceWeeks: elapsed.length, loadPerKm: loadPerKm != null ? Math.round(loadPerKm * 10) / 10 : null,
       },
-      longestRecentKm, runnaCalendarConnected,
+      longestRecentKm, runnaCalendarConnected, runTypes,
     });
   } catch (err) {
     console.error('athlete-os plan:', err);
