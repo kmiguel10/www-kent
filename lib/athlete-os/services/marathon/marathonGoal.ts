@@ -1,4 +1,9 @@
 import type { MarathonPayload } from '@/pages/api/athlete-os/marathon';
+import { PLAN_RUNS, PLAN_WEEKS, ZONES } from '@/lib/athlete-os/plan/miami2027';
+
+// Targets come from the actual Runna plan, not generic norms.
+const PLAN_PEAK_WEEK_KM = Math.max(...PLAN_WEEKS.filter((w) => w.week < 23).map((w) => w.plannedKm));
+const PLAN_PEAK_LONG_KM = Math.max(...PLAN_RUNS.filter((r) => r.workoutType === 'long').map((r) => r.plannedDistanceKm));
 
 /**
  * Marathon goal engine — turns race efforts + training volume into a live
@@ -99,7 +104,7 @@ export function buildGoalModel(data: MarathonPayload, aerobicPct: number | null)
 
   const estimators: Estimator[] = [
     { key: 'race', label: 'Race efforts', seconds: c.raceSec, note: c.raceFrom ? `Riegel from your best ${c.raceFrom}-and-shorter splits, last 8 weeks` : 'No fast splits in the last 8 weeks' },
-    { key: 'aerobic', label: 'Aerobic curve', seconds: c.aerobicSec, note: data.hrMax ? `Your HR–pace line at ~${Math.round(0.82 * data.hrMax)} bpm marathon effort` : 'Not enough HR data' },
+    { key: 'aerobic', label: 'Aerobic curve', seconds: c.aerobicSec, note: `Your HR–pace line at ~${Math.round(ZONES.runLthr * ZONES.marathonHrFracOfLthr)} bpm — 92% of your ${ZONES.runLthr} bpm threshold` },
     { key: 'vo2', label: 'VO₂max ceiling', seconds: c.vo2Sec, note: c.vo2max ? `Garmin VO₂max ${c.vo2max} → Daniels VDOT. Potential, not current form` : 'No VO₂max reading' },
   ];
 
@@ -129,15 +134,15 @@ export function buildGoalModel(data: MarathonPayload, aerobicPct: number | null)
       status: s, hint: s === 'bad' ? 'Easy runs are too hard — slow them to build base.' : 'Time in easy Zone 1–2.',
     });
   }
-  const volStatus: Status = data.recentWeeklyAvgKm >= 45 ? 'good' : data.recentWeeklyAvgKm >= 30 ? 'warn' : 'bad';
+  const volStatus: Status = data.recentWeeklyAvgKm >= 0.85 * PLAN_PEAK_WEEK_KM ? 'good' : data.recentWeeklyAvgKm >= 0.6 * PLAN_PEAK_WEEK_KM ? 'warn' : 'bad';
   levers.push({
-    key: 'volume', label: 'Weekly volume', value: `${data.recentWeeklyAvgKm} km`, target: '~55 km',
-    status: volStatus, hint: '4-week average. Consistency matters more than any single big week.',
+    key: 'volume', label: 'Weekly volume', value: `${data.recentWeeklyAvgKm} km`, target: `${PLAN_PEAK_WEEK_KM} km plan peak`,
+    status: volStatus, hint: '4-week average vs your Runna peak week. Consistency beats any single big week.',
   });
-  const lrStatus: Status = data.longestRunKm >= 28 ? 'good' : data.longestRunKm >= 20 ? 'warn' : 'bad';
+  const lrStatus: Status = data.longestRunKm >= 0.85 * PLAN_PEAK_LONG_KM ? 'good' : data.longestRunKm >= 0.6 * PLAN_PEAK_LONG_KM ? 'warn' : 'bad';
   levers.push({
-    key: 'longrun', label: 'Longest run', value: `${data.longestRunKm} km`, target: '32 km',
-    status: lrStatus, hint: 'Build the long run gradually toward ~32 km before the taper.',
+    key: 'longrun', label: 'Longest run (8 wks)', value: `${data.longestRunKm} km`, target: `${PLAN_PEAK_LONG_KM} km plan peak`,
+    status: lrStatus, hint: 'Runna builds you to its peak long run before the taper — protect those Saturdays.',
   });
 
   return {

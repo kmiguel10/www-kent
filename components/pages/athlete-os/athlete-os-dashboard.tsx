@@ -23,6 +23,13 @@ import AerobicEngine from './aerobic-engine';
 import WeightLog from './weight-log';
 import PerformanceDrivers from './performance-drivers';
 import SleepHabits from './sleep-habits';
+import RaceCountdown from './race-countdown';
+import ReadinessCoach from './readiness-coach';
+import WeekBoard from './week-board';
+import PlanProgress from './plan-progress';
+import TrainingLoad from './training-load';
+import KeySessions from './key-sessions';
+import type { PlanPayload } from '@/pages/api/athlete-os/plan';
 
 const EMPTY_MARATHON: MarathonPayload = {
   current: { raceSec: null, raceFrom: null, aerobicSec: null, vo2Sec: null, vo2max: null, ensembleSec: null, lowSec: null, highSec: null },
@@ -87,6 +94,7 @@ export default function AthleteOsDashboard() {
   const [rides, setRides] = useState<RideSummary[]>([]);
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [marathon, setMarathon] = useState<MarathonPayload>(EMPTY_MARATHON);
+  const [plan, setPlan] = useState<PlanPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [graphWindow, setGraphWindow] = useState<RollingWindow>(90);
 
@@ -97,8 +105,10 @@ export default function AthleteOsDashboard() {
       fetchJson<{ rides: RideSummary[] }>('/api/athlete-os/cycling'),
       fetchJson<{ runs: RunSummary[] }>('/api/athlete-os/running'),
       fetchJson<MarathonPayload>('/api/athlete-os/marathon'),
+      fetchJson<PlanPayload>('/api/athlete-os/plan').catch(() => null),
     ])
-      .then(([d, z, c, rn, mar]) => {
+      .then(([d, z, c, rn, mar, pl]) => {
+        setPlan(pl);
         setData(d); setZones(z); setRides(c.rides ?? []); setRuns(rn.runs ?? []);
         setMarathon(mar); setLoading(false);
       })
@@ -158,8 +168,32 @@ export default function AthleteOsDashboard() {
         <span className="rounded-full border border-gray-6 bg-gray-2 px-2.5 py-1">Habits · <span className="font-medium text-gray-12">derived from WHOOP</span></span>
       </div>
 
-      {/* Today — WHOOP readiness */}
-      <Panel title="Today" subtitle={data!.today ? `Readiness · ${data!.today.date} · from WHOOP recovery, HRV & sleep` : 'No WHOOP data for today yet'}>
+      {plan && (
+        <Panel title="Road to Miami" subtitle={`${plan.race.name} · Runna plan, week by week`}>
+          <RaceCountdown plan={plan} />
+        </Panel>
+      )}
+
+      {plan && (
+        <Panel title="Today" subtitle="Readiness-aware coaching from WHOOP and Garmin, against today’s plan">
+          <ReadinessCoach matrix={data!.matrix} today={plan.today} />
+        </Panel>
+      )}
+
+      {plan && (
+        <Panel title="Training Week" subtitle="Runna runs, strength and cycling — planned vs done">
+          <WeekBoard plan={plan} />
+        </Panel>
+      )}
+
+      {plan && (
+        <Panel title="Plan vs Actual" subtitle="Weekly volume and the long-run ladder to race day">
+          <PlanProgress plan={plan} />
+        </Panel>
+      )}
+
+      {/* Readiness score (WHOOP composite) */}
+      <Panel title="Readiness Score" subtitle={data!.today ? `${data!.today.date} · from WHOOP recovery, HRV & sleep` : 'No WHOOP data for today yet'}>
         <AthleteOrb today={data!.today} />
       </Panel>
 
@@ -177,6 +211,18 @@ export default function AthleteOsDashboard() {
       <Panel title="Marathon Goal" subtitle="Live tracker toward sub-4 on Jan 31, 2027 · Garmin runs only">
         <MarathonGoal model={goalModel} roadmap={roadmap} />
       </Panel>
+
+      {plan && (
+        <Panel title="Training Load" subtitle="Fitness, fatigue and race-day freshness — with the Runna plan projected">
+          <TrainingLoad plan={plan} />
+        </Panel>
+      )}
+
+      {plan && plan.keySessions.length > 0 && (
+        <Panel title="Key Sessions" subtitle="Every Runna quality session and long run on Garmin">
+          <KeySessions plan={plan} />
+        </Panel>
+      )}
 
       {/* Insights */}
       <Panel title="Insights" subtitle="Generated from your correlation patterns">

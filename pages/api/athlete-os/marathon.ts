@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import getFitnessSupabase from '@/lib/services/fitness-supabase';
 import { selectWithRetry } from '@/lib/athlete-os/services/fitnessQuery';
 import { isGarminRun } from '@/lib/athlete-os/services/performance/garminPerformance';
+import { ZONES } from '@/lib/athlete-os/plan/miami2027';
 
 /**
  * Marathon projection inputs — Garmin runs only.
@@ -12,7 +13,9 @@ import { isGarminRun } from '@/lib/athlete-os/services/performance/garminPerform
  *   1. race   — Riegel from your best Garmin fastest-splits (half > 10K > 5K,
  *               longer distances weighted more; they predict a marathon better).
  *   2. aerobic— your grade-adjusted speed-vs-HR line evaluated at a sustainable
- *               marathon HR (82% of observed max HR).
+ *               marathon HR: 92% of your Garmin running lactate-threshold HR
+ *               (≈153 bpm). 82% of max sat at threshold — far too hot for a
+ *               4–5 h marathon.
  *   3. vo2    — Daniels VDOT from Garmin VO₂max. Reported as a CEILING
  *               (potential), not blended — for most runners it's optimistic.
  * Headline = 60% race + 40% aerobic; range = the spread between them.
@@ -45,7 +48,7 @@ export interface MarathonPayload {
 const MARATHON_M = 42195;
 const WINDOW_MS = 56 * 864e5;
 const RIEGEL = 1.06;
-const MARATHON_HR_FRAC = 0.82;
+const MARATHON_HR = ZONES.runLthr * ZONES.marathonHrFracOfLthr;
 const SPLITS: { key: string; name: string; m: number; w: number }[] = [
   { key: 'fastestSplit_21098', name: 'half marathon', m: 21097.5, w: 4 },
   { key: 'fastestSplit_10000', name: '10K', m: 10000, w: 2 },
@@ -87,7 +90,7 @@ function linfit(pts: { x: number; y: number }[]) {
   return { a: (sy - b * sx) / n, b };
 }
 
-function estimate(runs: Run[], endMs: number, hrMax: number | null): EstimateSet {
+function estimate(runs: Run[], endMs: number): EstimateSet {
   const win = runs.filter((r) => r.t <= endMs && r.t > endMs - WINDOW_MS);
 
   // 1. Race-effort (Riegel), weighted by split distance.
@@ -103,10 +106,10 @@ function estimate(runs: Run[], endMs: number, hrMax: number | null): EstimateSet
   // 2. Aerobic: GAP speed vs HR on ≥20-min runs, read at marathon HR.
   let aerobicSec: number | null = null;
   const pts = win.filter((r) => r.dur >= 1200 && r.hr && r.gap && r.gap > 1.5).map((r) => ({ x: r.hr!, y: r.gap! }));
-  if (hrMax && pts.length >= 6) {
+  if (pts.length >= 6) {
     const fit = linfit(pts);
     const hrs = pts.map((p) => p.x);
-    const mHr = Math.min(Math.max(MARATHON_HR_FRAC * hrMax, Math.min(...hrs)), Math.max(...hrs)); // no wild extrapolation
+    const mHr = Math.min(Math.max(MARATHON_HR, Math.min(...hrs)), Math.max(...hrs)); // no wild extrapolation
     if (fit && fit.b > 0) {
       const speed = fit.a + fit.b * mHr;
       if (speed > 1.5) aerobicSec = MARATHON_M / speed;
@@ -168,14 +171,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const yearHr = runs.filter((r) => r.t > now - 365 * 864e5).map((r) => r.maxHr).filter((x): x is number => x != null && x < 230).sort((a, b) => b - a);
     const hrMax = yearHr.length >= 2 ? yearHr[1] : yearHr[0] ?? null;
 
-    const current = estimate(runs, now, hrMax);
+    const current = estimate(runs, now);
 
     // Weekly rolling estimates for the last 26 weeks (window end = Sunday 23:59).
     const weekly: MarathonPayload['weekly'] = [];
     const thisMonday = Date.parse(weekStart(new Date().toISOString().slice(0, 10)) + 'T00:00:00Z');
     for (let w = 25; w >= 0; w--) {
       const end = thisMonday - w * 7 * 864e5 + 7 * 864e5 - 1;
-      const e = estimate(runs, Math.min(end, now), hrMax);
+      const e = estimate(runs, Math.min(end, now));
       weekly.push({ week: new Date(end).toISOString().slice(0, 10), ensembleSec: e.ensembleSec, vo2Sec: e.vo2Sec });
     }
 
