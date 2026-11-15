@@ -133,12 +133,12 @@ export const METRICS: Record<MetricKey, MetricDefinition> = {
   aerobicPct: {
     key: 'aerobicPct', label: 'Aerobic %', short: 'Aerobic', source: 'garmin', category: 'load',
     direction: 'higherBetter', unit: '%', color: '#34d399',
-    hint: '% of session time in easy zones 1–2 (aerobic base)',
+    hint: '% of session time easy — runs ≤151 bpm, rides Garmin Z1–2 (aerobic base)',
   },
   greyZonePct: {
     key: 'greyZonePct', label: 'Grey-Zone %', short: 'Grey zone', source: 'garmin', category: 'load',
     direction: 'lowerBetter', unit: '%', color: '#fbbf24',
-    hint: '% of session time in zone 3 — the "junk-mile" grey zone',
+    hint: '% of session time in the grey zone — runs 152–164 bpm, rides Garmin Z3',
   },
 
   // ── Performance (Garmin) ──────────────────────────────────────────────────

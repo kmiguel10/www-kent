@@ -152,7 +152,7 @@ export default function AerobicView({ model, decoupling }: { model: AerobicModel
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-10">⚠ = labelled easy but {'>'}50% of time was above Zone 2 (tempo/threshold).</p>
+        <p className="text-xs text-gray-10">⚠ = labelled easy but {'>'}50% of time was {model.sport === 'running' ? 'above your 151 bpm easy ceiling' : 'above Zone 2 (tempo/threshold)'}.</p>
       </div>
 
       {/* Aerobic decoupling — from Strava per-second streams */}

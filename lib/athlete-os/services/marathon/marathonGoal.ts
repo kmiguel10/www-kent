@@ -131,7 +131,7 @@ export function buildGoalModel(data: MarathonPayload, aerobicPct: number | null)
     const s: Status = aerobicPct >= 65 ? 'good' : aerobicPct >= 40 ? 'warn' : 'bad';
     levers.push({
       key: 'aerobic', label: 'Aerobic base', value: `${Math.round(aerobicPct)}% easy`, target: '≥ 70% easy',
-      status: s, hint: s === 'bad' ? 'Easy runs are too hard — slow them to build base.' : 'Time in easy Zone 1–2.',
+      status: s, hint: s === 'bad' ? 'Easy runs are too hard — slow them to build base.' : 'Running time at ≤151 bpm, your easy ceiling.',
     });
   }
   const volStatus: Status = data.recentWeeklyAvgKm >= 0.85 * PLAN_PEAK_WEEK_KM ? 'good' : data.recentWeeklyAvgKm >= 0.6 * PLAN_PEAK_WEEK_KM ? 'warn' : 'bad';

@@ -1,3 +1,5 @@
+import { easyGreyHard } from '../zones/easyZones';
+import { ZONES } from '@/lib/athlete-os/plan/miami2027';
 import {
   type AerobicModel, type Confidence, type Recommendation,
   formatPace,
@@ -104,7 +106,7 @@ export function buildRunningModel(runs: RunSummary[]): AerobicModel | null {
     .filter((r) => r.hrZoneSecs.reduce((a, b) => a + b, 0) > 0)
     .map((r) => {
       const z = r.hrZoneSecs, tot = z.reduce((a, b) => a + b, 0) || 1;
-      const easyPct = Math.round(((z[0] + z[1]) / tot) * 100);
+      const easyPct = Math.round((easyGreyHard(z, true).easy / tot) * 100); // ≤151 bpm
       const dom = z.indexOf(Math.max(...z)) + 1;
       const isLong = r.durationSeconds >= 4500;
       const intended: 'easy' | 'other' = isEasyName(r.name) || isLong ? 'easy' : 'other';
@@ -136,7 +138,7 @@ export function buildRunningModel(runs: RunSummary[]): AerobicModel | null {
     recs.push({
       severity: 'action',
       title: `${flagged.length} "easy" run${flagged.length > 1 ? 's' : ''} ran above aerobic threshold`,
-      detail: `e.g. "${flagged[0].name}" spent ${flagged[0].abovePct}% of time above Zone 2 (dominant ${flagged[0].actualZone}). Slow down until HR settles under ${z2HrHigh}.`,
+      detail: `e.g. "${flagged[0].name}" spent ${flagged[0].abovePct}% of time above your ${ZONES.runEasyMaxHr} bpm easy ceiling (dominant ${flagged[0].actualZone}). Slow down until HR settles under ${ZONES.runEasyMaxHr}.`,
     });
   }
   if (efPts.length >= 6) {

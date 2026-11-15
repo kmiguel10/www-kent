@@ -1,3 +1,4 @@
+import { easyGreyHard } from './easyZones';
 /**
  * Zone analysis — pure helpers for HR-zone discipline (polarized training).
  *
@@ -53,6 +54,8 @@ export function zoneForAvgHr(avgHr: number, maxHr: number): number {
 export function polarize(sessions: ZoneSession[], mode: ZoneMode, maxHr: number): Polarization {
   const byZone = [0, 0, 0, 0, 0];
   let total = 0;
+  // Garmin mode: runs use the athlete's ≤151 bpm easy ceiling (see easyZones).
+  const split = { easy: 0, grey: 0, hard: 0 };
 
   for (const s of sessions) {
     if (mode === 'garmin') {
@@ -60,6 +63,8 @@ export function polarize(sessions: ZoneSession[], mode: ZoneMode, maxHr: number)
       const t = secs.reduce((a, b) => a + b, 0);
       if (t <= 0) continue;
       for (let z = 0; z < 5; z++) byZone[z] += secs[z] || 0;
+      const e = easyGreyHard(secs, s.sport === 'run');
+      split.easy += e.easy; split.grey += e.grey; split.hard += e.hard;
       total += t;
     } else {
       // Max-HR mode: attribute the whole session's duration to its avg-HR zone.
@@ -74,10 +79,11 @@ export function polarize(sessions: ZoneSession[], mode: ZoneMode, maxHr: number)
     return { easy: 0, grey: 0, hard: 0, byZone: [0, 0, 0, 0, 0], totalSeconds: 0, sessions: 0 };
   }
   const pct = byZone.map((v) => (v / total) * 100);
+  const garmin = mode === 'garmin';
   return {
-    easy: pct[0] + pct[1],
-    grey: pct[2],
-    hard: pct[3] + pct[4],
+    easy: garmin ? (split.easy / total) * 100 : pct[0] + pct[1],
+    grey: garmin ? (split.grey / total) * 100 : pct[2],
+    hard: garmin ? (split.hard / total) * 100 : pct[3] + pct[4],
     byZone: pct,
     totalSeconds: total,
     sessions: sessions.length,
@@ -112,9 +118,6 @@ export function sessionSplit(s: ZoneSession, mode: ZoneMode, maxHr: number): { e
   }
   const t = s.zoneSecs.reduce((a, b) => a + b, 0);
   if (t <= 0) return { easy: 0, grey: 0, hard: 0 };
-  return {
-    easy: ((s.zoneSecs[0] + s.zoneSecs[1]) / t) * 100,
-    grey: (s.zoneSecs[2] / t) * 100,
-    hard: ((s.zoneSecs[3] + s.zoneSecs[4]) / t) * 100,
-  };
+  const e = easyGreyHard(s.zoneSecs, s.sport === 'run');
+  return { easy: (e.easy / t) * 100, grey: (e.grey / t) * 100, hard: (e.hard / t) * 100 };
 }

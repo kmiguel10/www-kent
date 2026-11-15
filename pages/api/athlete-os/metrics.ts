@@ -9,6 +9,7 @@ import {
   type GarminActivityRow, activityDay, isGarminRun,
   runEfficiencies, rideEfficiencies, dailyEfficiency, dailyPerformance,
 } from '@/lib/athlete-os/services/performance/garminPerformance';
+import { easyGreyHard } from '@/lib/athlete-os/services/zones/easyZones';
 
 /**
  * Athlete OS data adapter — one aligned daily matrix keyed by MetricKey.
@@ -155,7 +156,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       const z = [a.z1, a.z2, a.z3, a.z4, a.z5].map((v) => num(v) ?? 0);
       if (z.reduce((s, v) => s + v, 0) > 0) {
         const g = zoneByDay.get(day) ?? { easy: 0, grey: 0, hard: 0 };
-        g.easy += z[0] + z[1]; g.grey += z[2]; g.hard += z[3] + z[4];
+        const e = easyGreyHard(z, isGarminRun(a.sport_type)); // runs: ≤151 bpm easy
+        g.easy += e.easy; g.grey += e.grey; g.hard += e.hard;
         zoneByDay.set(day, g);
       }
       const vo2 = num(a.vo2);

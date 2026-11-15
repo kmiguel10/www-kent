@@ -18,7 +18,10 @@ export const ZONES: AthleteZones = {
   cycleMaxHr: 188,
   cycleLthr: 162,
   marathonHrFracOfLthr: 0.92,
-  source: 'Garmin Connect settings (LTHR measured 2026-04-23)',
+  runZoneFloors: [98, 121, 141, 165, 177],
+  // Easy = ≤151 bpm per MARATHON_TRAINING.md (Garmin's own Z2 tops out at 140).
+  runEasyMaxHr: 151,
+  source: 'Garmin Connect settings (LTHR measured 2026-04-23); easy ceiling from MARATHON_TRAINING.md',
 };
 
 type Row = [date: string, week: number, name: string, type: WorkoutType, km: number];

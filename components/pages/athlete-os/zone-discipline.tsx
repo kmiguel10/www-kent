@@ -9,7 +9,7 @@ import {
 
 /**
  * Zone Discipline — visualises polarized-training discipline: how much time is
- * spent easy (Z1–2) vs the grey zone (Z3) vs hard (Z4–5), against the ~80/20
+ * spent easy vs the grey zone vs hard (runs: easy ≤151 bpm, hard ≥ threshold), against the ~80/20
  * ideal. Toggle between Garmin's time-in-zone and a custom max-HR recompute.
  */
 
@@ -61,7 +61,13 @@ export default function ZoneDiscipline({
             fmt={(v) => (v === 'all' ? 'All' : v === 'run' ? 'Run' : 'Ride')} />
           <Segmented label="Zones from" options={['garmin', 'maxhr'] as const} value={mode} onChange={setMode}
             fmt={(v) => (v === 'garmin' ? 'Garmin' : 'Max HR')} />
-          {mode === 'maxhr' && (
+          {mode === 'garmin' && (
+        <p className="-mt-2 text-xs text-gray-10">
+          Runs: easy ≤151 bpm (your ceiling), grey 152–164, hard ≥165 (threshold). Garmin only reports time per Garmin zone, so its
+          141–164 zone is split at 151 — an estimate. Rides use Garmin&apos;s cycling zones.
+        </p>
+      )}
+      {mode === 'maxhr' && (
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-10">Max HR</span>
               <input
@@ -100,9 +106,9 @@ export default function ZoneDiscipline({
           <div className="absolute top-0 h-full border-l-2 border-dashed border-gray-12/60" style={{ left: `${TARGET_EASY}%` }} />
         </div>
         <div className="flex gap-4 text-xs text-gray-11">
-          <Legend color={EASY} label={`Easy Z1–2 · ${pctLabel(polar.easy)}`} />
-          <Legend color={GREY} label={`Grey Z3 · ${pctLabel(polar.grey)}`} />
-          <Legend color={HARD} label={`Hard Z4–5 · ${pctLabel(polar.hard)}`} />
+          <Legend color={EASY} label={`Easy · ${pctLabel(polar.easy)}`} />
+          <Legend color={GREY} label={`Grey · ${pctLabel(polar.grey)}`} />
+          <Legend color={HARD} label={`Hard · ${pctLabel(polar.hard)}`} />
         </div>
       </div>
 
@@ -111,7 +117,7 @@ export default function ZoneDiscipline({
         {polar.easy < 50 ? (
           <>
             Only <span className="font-semibold" style={{ color: EASY }}>{pctLabel(polar.easy)}</span> of your{' '}
-            {sport === 'all' ? 'training' : sport === 'run' ? 'running' : 'riding'} time is truly easy (Z1–2), with{' '}
+            {sport === 'all' ? 'training' : sport === 'run' ? 'running' : 'riding'} time is truly easy, with{' '}
             <span className="font-semibold" style={{ color: GREY }}>{pctLabel(polar.grey)}</span> stuck in the grey zone.
             Polarized training wants ~80% easy — you have almost no aerobic base.
           </>

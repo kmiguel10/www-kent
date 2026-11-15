@@ -55,5 +55,9 @@ export interface AthleteZones {
   cycleLthr: number;
   /** Fraction of running LTHR used as sustainable marathon effort. */
   marathonHrFracOfLthr: number;
+  /** Garmin running HR-zone floors Z1..Z5 (lactate-threshold based). */
+  runZoneFloors: [number, number, number, number, number];
+  /** Upper bound of "easy" running HR (athlete's own definition). */
+  runEasyMaxHr: number;
   source: string;
 }

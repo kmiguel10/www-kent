@@ -10,7 +10,7 @@ import { GOAL } from './marathonGoal';
 // Peak targets a sub-4 build works toward.
 const V_PEAK = 60;      // km/week at peak
 const LR_PEAK = 32;     // km longest run at peak
-const AER_TARGET = 75;  // % easy (Zone 1–2)
+const AER_TARGET = 75;  // % easy (runs ≤151 bpm)
 const AER_RAMP_WEEKS = 8;
 
 export type Phase = 'base' | 'build' | 'peak' | 'taper';

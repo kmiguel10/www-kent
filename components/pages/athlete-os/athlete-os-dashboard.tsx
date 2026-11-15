@@ -30,6 +30,7 @@ import PlanProgress from './plan-progress';
 import TrainingLoad from './training-load';
 import KeySessions from './key-sessions';
 import type { PlanPayload } from '@/pages/api/athlete-os/plan';
+import { easyGreyHard } from '@/lib/athlete-os/services/zones/easyZones';
 
 const EMPTY_MARATHON: MarathonPayload = {
   current: { raceSec: null, raceFrom: null, aerobicSec: null, vo2Sec: null, vo2max: null, ensembleSec: null, lowSec: null, highSec: null },
@@ -117,13 +118,13 @@ export default function AthleteOsDashboard() {
 
   const ftp = useMemo(() => estimateFtp(rides).ftp, [rides]);
 
-  // Running-specific aerobic (easy Zone 1–2) share, for the marathon base lever.
+  // Running easy share (≤151 bpm ceiling), for the marathon base lever.
   const runningAerobicPct = useMemo(() => {
     const runSessions = zones.sessions.filter((s) => s.sport === 'run');
     let easy = 0, total = 0;
     for (const s of runSessions) {
       const t = s.zoneSecs.reduce((a, b) => a + b, 0);
-      easy += (s.zoneSecs[0] ?? 0) + (s.zoneSecs[1] ?? 0);
+      easy += easyGreyHard(s.zoneSecs, true).easy; // ≤151 bpm easy ceiling
       total += t;
     }
     return total > 0 ? (easy / total) * 100 : null;
